@@ -36,6 +36,14 @@ def normalize(row: dict, budget: dict | None) -> dict:
     return row
 
 
+def ceiling(task: dict | None) -> float | None:
+    """Information ceiling of the acceptance rate for anchor tasks: after the anchor, k candidates remain,
+    the customer knows nothing more, and the agent has `submit` tries. Best case = min(1, submit / k)."""
+    if not task or not task.get("anchor_k"):
+        return None
+    return min(1.0, task["budget"]["submit"] / task["anchor_k"])
+
+
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
     if n == 0:
         return (float("nan"), float("nan"))
@@ -69,13 +77,15 @@ def main():
     if task:
         rows = [r for r in rows if r["task_id"] == task["id"]]
 
+    cap = ceiling(task)
     groups = defaultdict(list)
     for r in rows:
         groups[(r["variant"], r["harness"])].append(r)
 
     cost_cols = " | ".join(f"cost r={w}" for w in CFC_WEIGHTS)
     head = (
-        "| variant | harness | n | no action | acceptance [95% CI] | questions | unknown | rework interp/error | "
+        "| variant | harness | n | no action | acceptance [95% CI] | acc/ceiling | questions | unknown | "
+        "rework interp/error | "
         f"{cost_cols} | time(s) |"
     )
     print(head)
@@ -84,7 +94,9 @@ def main():
         rs = all_rows  # episodes with no action count as failures too
         if not rs:
             print(
-                f"| {variant} | {harness} | 0 | {len(all_rows)} | - | - | - | - |" + " - |" * len(CFC_WEIGHTS) + " - |"
+                f"| {variant} | {harness} | 0 | {len(all_rows)} | - | - | - | - | - |"
+                + " - |" * len(CFC_WEIGHTS)
+                + " - |"
             )
             continue
         k = sum(r["accepted"] for r in rs)
@@ -95,6 +107,7 @@ def main():
             str(len(rs)),
             str(sum(not r["acted"] for r in rs)),
             f"{k}/{len(rs)} [{lo:.2f}, {hi:.2f}]",
+            f"{k / len(rs) / cap:.2f}" if cap else "-",
             f"{mean(r['n_questions'] for r in rs):.1f}",
             f"{mean(r.get('n_unknown', 0) for r in rs):.1f}",
             f"{mean(r.get('n_rework_interp', r['n_rework']) for r in rs):.1f}/"
@@ -107,6 +120,8 @@ def main():
         "\ncost = questions + r x reworks if accepted; question budget + r x submit budget if failed.\n"
         "Reworks in old rows are not split into interp/error."
     )
+    if cap:
+        print(f"acc/ceiling = acceptance / ceiling. Ceiling for this task = min(1, submit budget / k) = {cap:.2f}.")
 
     if task and task.get("n_interpretations"):
         b = guess_baseline(task["n_interpretations"], task["budget"]["submit"])

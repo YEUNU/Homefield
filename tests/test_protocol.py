@@ -144,3 +144,11 @@ def test_finished_episodes_for_resume(tmp_path):
         ("t", "bare", "E1", 0),
         ("t", "bare", "E1", 2),
     }  # only the earlier times run again
+
+
+def test_anchor_ceiling():
+    from evalkit.report import ceiling
+
+    assert ceiling({"anchor_k": 4, "budget": {"submit": 2}}) == 0.5
+    assert ceiling({"anchor_k": 1, "budget": {"submit": 2}}) == 1.0
+    assert ceiling({"budget": {"submit": 2}}) is None  # not an anchor task
