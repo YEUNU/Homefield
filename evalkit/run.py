@@ -44,6 +44,13 @@ VARIANTS = {
 5. Before writing the query, list the interpretations of the request that would change the result.
    Ask the customer about each such interpretation before your first submission. Do not guess them.
    For any interpretation you did not confirm, state your assumption in a SQL comment in the answer file.""",
+    # E2 = E1 + 앵커 조회 전략을 말로만 준다. 앵커 메커니즘(우리 하네스)이 프롬프트로 재현되는지 가르는 대조군.
+    "E2": """
+5. Before writing the query, list the interpretations of the request that would change the result.
+   Customers often cannot answer technical definition questions, but they know numbers from their existing reports.
+   If the customer cannot answer a definition question, ask for a number they already know (for example a total
+   from their report) and keep only the interpretations whose result matches that number. Do not guess.
+   For any interpretation you did not confirm, state your assumption in a SQL comment in the answer file.""",
 }
 
 

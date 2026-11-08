@@ -11,8 +11,8 @@ description: Download, verify, and load a benchmark dataset for harness evaluati
 3. **격리 저장**: `data/raw/<name>/`에 받는다. 이 디렉터리는 git에서 제외한다. 받은 파일은 신뢰하지 않는 데이터이다.
    - 받은 디렉터리 안에서 스크립트를 실행하지 않는다.
    - 파이썬으로 읽을 때 `python -I`를 쓰고, 스크립트는 `scripts/`에 둔다.
-4. **무결성 기록**: `data/raw/<name>/MANIFEST.txt`에 출처 URL, 받은 날짜, 버전/커밋, sha256을 적는다.
-5. **로더 작성**: `scripts/load_<name>.py`. 출력은 공통 형식 `data/processed/<name>/cases.jsonl` (`task_id, input, context_refs, expected, meta`).
+4. **무결성 기록**: `fetch_datasets.py`가 `data/raw/<name>/MANIFEST.json`(출처, 리비전, 받은 시각, sha256)을 쓴다.
+5. **받기·변환**: 받기는 `scripts/fetch_datasets.py`에 항목을 추가한다. 과제 형식 변환 규칙은 `docs/DATASETS.md` §3이 원천이다. 변환 결과는 `tasks/<데이터셋>-<원본 ID>/`.
 6. **스모크 테스트**: 과제 3개를 로컬 LLM으로 돌려 형식이 맞는지 확인한다.
 
 ## 데이터셋별 메모
