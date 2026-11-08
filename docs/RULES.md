@@ -144,7 +144,7 @@ push, PR 생성, 태그, 릴리스, force-push, 기록 재작성, 저장소 설�
 | 린트·서식 | 로컬 CI | `ruff check`, `ruff format --check` |
 | 테스트 | 로컬 CI | `pytest` |
 | push 전 전체 검사 | pre-push hook | `.githooks/pre-push` → `scripts/ci.sh` |
-| `main` 직접 push 금지 | GitHub 브랜치 보호 | **미설정** (저장소 설정 변경은 사람 승인 필요) |
+| `main` 직접 push 금지, PR·`local-ci` 필수, force-push·삭제 금지 | GitHub 브랜치 보호 | 설정됨 (2026-11-08). 관리자 우회는 비상용으로 열어 둠 |
 | 문체·근거 표기 | 사람 리뷰 | - |
 
 ### 4.1 로컬 CI
