@@ -7,6 +7,7 @@
 
 ## 문서 위치
 - `docs/` = 배포 문서(공개), `internal/` = 내부 문서(비공개 저장소 `YEUNU/Homefield-internal` 클론). 기준: `docs/RULES.md` §1.1.
+- **배포 문서(`docs/`, `README.md`, PR 템플릿)는 영어로 쓴다** (ASD-STE100). 내부 문서는 한국어로 쓴다. 사용자와의 대화는 한국어로 한다.
 - `internal/`이 없으면: `git clone https://github.com/YEUNU/Homefield-internal.git internal`
 
 ## 맥락 (먼저 읽는다)
