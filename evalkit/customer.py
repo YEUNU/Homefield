@@ -1,4 +1,4 @@
-"""고객 시뮬레이터: 숨은 사실만 알고 답한다. 정답 SQL·결과는 모른다."""
+"""Customer simulator: answers using only the hidden facts. It does not know the gold SQL or result."""
 
 from homefield import model as llm
 
@@ -18,7 +18,7 @@ def make_customer(task: dict, model: str = llm.DEFAULT_MODEL):
 
     def simulate(question: str) -> str:
         messages = [{"role": "system", "content": system}, {"role": "user", "content": question}]
-        # 시뮬레이터는 같은 질문에 같은 답을 하도록 고정한다 (평가 대상이 아니다).
+        # Fix the simulator so it gives the same answer to the same question (it is not under evaluation).
         return llm.chat(messages, model=model, temperature=0.0, thinking=False).strip()
 
     return simulate

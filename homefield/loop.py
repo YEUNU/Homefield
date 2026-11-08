@@ -1,5 +1,6 @@
-"""M0 루프: 모델 호출 → 도구 실행 → 결과를 대화에 붙인다. 도구 호출이 없는 답이 나오면 끝난다.
-모델은 complete 함수로 주입한다 (기본: homefield.model.complete)."""
+"""M0 loop: call the model, run the tools, append the results to the conversation.
+It ends when a reply has no tool call.
+The model is injected as the complete function (default: homefield.model.complete)."""
 
 import json
 from dataclasses import dataclass

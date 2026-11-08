@@ -1,5 +1,6 @@
-"""비교 하네스 어댑터. 각 함수는 (명령, 추가 환경변수)를 돌려준다. 모든 설정은 에피소드 폴더 안에 격리한다.
-연결 방식 근거: docs/HARNESSES.md"""
+"""Adapters for the compared harnesses. Each function returns (command, extra env vars).
+All settings stay isolated in the episode folder.
+Basis for the connection method: docs/HARNESSES.md"""
 
 import json
 import os
@@ -7,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# 재현성을 위해 버전을 고정한다. goose는 Homebrew 설치본을 쓴다 (실행 시 버전을 확인해 기록).
+# Pin versions for reproducibility. goose uses the Homebrew install (check and record its version at run time).
 VERSIONS = {
     "claude": "2.1.319",
     "codex": "0.167.0",
@@ -190,7 +191,7 @@ def goose(ep, prompt: str, model: str, env: dict):
 
 
 def bare(ep, prompt: str, model: str, env: dict):
-    """우리 하네스 M0: 모델 독립 도구 호출 루프 (homefield)."""
+    """Our harness M0: model-independent tool-call loop (homefield)."""
     return (
         ["python3", "-m", "homefield", "-p", prompt, "--model", model, "--log", str(ep.root / "trajectory.jsonl")],
         {"PYTHONPATH": str(ROOT)},

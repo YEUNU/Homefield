@@ -2,8 +2,8 @@ CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
 CREATE TABLE orders (
   id INTEGER PRIMARY KEY,
   customer_id INTEGER NOT NULL REFERENCES customers(id),
-  order_date TEXT NOT NULL,   -- YYYY-MM-DD, 주문일
-  paid_date TEXT NOT NULL,    -- YYYY-MM-DD, 결제일
+  order_date TEXT NOT NULL,   -- YYYY-MM-DD, order date
+  paid_date TEXT NOT NULL,    -- YYYY-MM-DD, payment date
   status TEXT NOT NULL,       -- 'paid' | 'cancelled'
   total_excl_tax REAL NOT NULL,
   total_incl_tax REAL NOT NULL

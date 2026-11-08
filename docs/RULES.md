@@ -41,10 +41,10 @@ audience: public | internal            # docs/ is public, internal/ is internal
 - Put a date only in the front matter `updated`.
 
 ### 1.4 Language and style (based on ASD-STE100)
-- Write public documents (`docs/`, `README.md`, the PR template) in English (ASD-STE100 Simplified Technical English).
+- Write all repository content (code, comments, messages, docs, skills, `CLAUDE.md`) in English (ASD-STE100 Simplified Technical English).
+- Task data may contain other languages on purpose (it simulates customers).
 - Write internal documents (`internal/`) in Korean.
 - Keep identifiers, commands, and file names as they are.
-- Code comments and docstrings can be in Korean or English.
 - Write one idea in each sentence. Use the active voice. Use short sentences.
 - Use the same term for the same object (§1.6).
 - Use tables and lists before prose.
@@ -58,15 +58,15 @@ audience: public | internal            # docs/ is public, internal/ is internal
 ### 1.6 Terms
 | Term | Meaning |
 |---|---|
-| harness (하네스) | An execution frame that wraps a model and gives it tools, a loop, and policies |
-| task (과제) | One customer request (`tasks/<id>/`) |
-| episode (에피소드) | One task × one harness × one run |
+| harness | An execution frame that wraps a model and gives it tools, a loop, and policies |
+| task | One customer request (`tasks/<id>/`) |
+| episode | One task × one harness × one run |
 | engagement | A group of tasks that continue on the same customer and data |
-| ledger (원장) | The structure that records interpretation decisions and assumptions |
-| decision / assumption (결정 / 가정) | An interpretation choice that can change the output / a decision that the agent made without asking |
-| rework (재작업) | A rejected submission |
+| ledger | The structure that records interpretation decisions and assumptions |
+| decision / assumption | An interpretation choice that can change the output / a decision that the agent made without asking |
+| rework | A rejected submission |
 | CFC | Cost to first correct answer = question round trips + r × rework |
-| process case (프로세스 케이스) | A process-mining term. One process instance in an event log. It is not a "task" |
+| process case | A process-mining term. One process instance in an event log. It is not a "task" |
 
 ### 1.7 Paths and secrets
 - Write paths in documents relative to the Homefield root (examples: `internal/PROBLEM.md`, `docs/EVALUATION.md`).

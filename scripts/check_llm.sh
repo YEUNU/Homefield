@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# 로컬 LLM 연결 확인: 모델 목록 + 모델 그룹 정보.
+# Check the local LLM connection: model list and model group info.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 [ -f .env ] && { set -a; . ./.env; set +a; }
-: "${LOCAL_LLM_BASE_URL:?LOCAL_LLM_BASE_URL 없음. .env에 넣는다}"
+: "${LOCAL_LLM_BASE_URL:?LOCAL_LLM_BASE_URL is not set. Put it in .env}"
 if [ -z "${LOCAL_LLM_API_KEY:-}" ]; then
-  echo "LOCAL_LLM_API_KEY 없음. .env.example을 .env로 복사하고 키를 넣는다." >&2; exit 1
+  echo "LOCAL_LLM_API_KEY is not set. Copy .env.example to .env and add the key." >&2; exit 1
 fi
 auth=(-H "Authorization: Bearer $LOCAL_LLM_API_KEY")
 echo "== models"

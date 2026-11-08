@@ -1,4 +1,4 @@
-"""도구. M0는 셸 하나만 둔다 (공통 규약의 ask_user·submit_answer도 셸 명령이다)."""
+"""Tools. M0 has one shell tool only (ask_user and submit_answer of the common protocol are also shell commands)."""
 
 import subprocess
 from pathlib import Path
@@ -23,7 +23,7 @@ def run_bash(command: str, cwd: Path, timeout: int = 120, limit: int = 10_000) -
     except subprocess.TimeoutExpired:
         return f"exit=timeout after {timeout}s"
     out = p.stdout + p.stderr
-    if len(out) > limit:  # 앞뒤를 남기고 가운데를 자른다
+    if len(out) > limit:  # keep the head and tail, cut the middle
         half = limit // 2
         out = f"{out[:half]}\n... [{len(out) - limit} chars truncated] ...\n{out[-half:]}"
     return f"exit={p.returncode}\n{out}"

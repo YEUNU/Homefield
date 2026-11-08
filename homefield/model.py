@@ -1,5 +1,5 @@
-"""모델 호출 단일 모듈 (OpenAI 호환 chat completions). 다른 모듈은 HTTP로 모델을 직접 부르지 않는다.
-설정은 저장소 루트 .env의 LOCAL_LLM_BASE_URL, LOCAL_LLM_API_KEY."""
+"""Single module for model calls (OpenAI-compatible chat completions). No other module calls the model over HTTP.
+Settings come from LOCAL_LLM_BASE_URL and LOCAL_LLM_API_KEY in the .env at the repo root."""
 
 import json
 import os
@@ -29,9 +29,9 @@ def complete(
     temperature: float | None = None,
     thinking: bool | None = None,
 ) -> dict:
-    """assistant 메시지 하나를 돌려준다: {"role", "content", "tool_calls"(있으면)}.
-    temperature·thinking이 None이면 서버 기본값을 쓴다 (비교 하네스들과 같은 조건).
-    thinking 모델은 생각에 토큰을 쓰므로 max_tokens를 넉넉히 둔다."""
+    """Return one assistant message: {"role", "content", "tool_calls" (if any)}.
+    If temperature or thinking is None, use the server default (same condition as the compared harnesses).
+    Thinking models spend tokens on thinking, so keep max_tokens high."""
     env = load_env()
     body = {"model": model, "messages": messages, "max_tokens": max_tokens}
     if temperature is not None:
@@ -57,5 +57,5 @@ def complete(
 
 
 def chat(messages: list[dict], model: str = DEFAULT_MODEL, max_tokens: int = 512, **sampling) -> str:
-    """도구 없이 텍스트만 받는다. sampling: temperature, thinking."""
+    """Get text only, with no tools. sampling: temperature, thinking."""
     return complete(messages, model=model, max_tokens=max_tokens, **sampling)["content"] or ""

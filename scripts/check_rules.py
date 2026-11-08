@@ -1,8 +1,8 @@
-"""docs/RULES.md §4의 기계 검사.
+"""Machine checks for docs/RULES.md §4.
 
-python3 scripts/check_rules.py               # 추적 중인 파일 전체 (CI)
-python3 scripts/check_rules.py --staged      # staged 파일만 (pre-commit)
-python3 scripts/check_rules.py --internal internal   # 내부 문서 머리말·이름 검사
+python3 scripts/check_rules.py               # all tracked files (CI)
+python3 scripts/check_rules.py --staged      # staged files only (pre-commit)
+python3 scripts/check_rules.py --internal internal   # check front matter and names of internal docs
 """
 
 import argparse
@@ -44,16 +44,16 @@ def front_matter(text: str) -> dict | None:
 def check_doc(path: Path, audience: str, statuses: set[str], name_re: re.Pattern) -> list[str]:
     errs = []
     if not name_re.match(path.name):
-        errs.append(f"{path}: 파일 이름 규칙 위반 (RULES §1.2)")
+        errs.append(f"{path}: file name rule violation (RULES §1.2)")
     fm = front_matter(path.read_text(encoding="utf-8"))
     if fm is None:
-        return errs + [f"{path}: 머리말(front matter) 없음 (RULES §1.3)"]
+        return errs + [f"{path}: no front matter (RULES §1.3)"]
     if fm.get("status") not in statuses:
-        errs.append(f"{path}: status는 {sorted(statuses)} 중 하나 (현재: {fm.get('status')!r})")
+        errs.append(f"{path}: status must be one of {sorted(statuses)} (now: {fm.get('status')!r})")
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", fm.get("updated", "")):
-        errs.append(f"{path}: updated는 YYYY-MM-DD")
+        errs.append(f"{path}: updated must be YYYY-MM-DD")
     if fm.get("audience") != audience:
-        errs.append(f"{path}: audience는 {audience!r}")
+        errs.append(f"{path}: audience must be {audience!r}")
     return errs
 
 
@@ -62,23 +62,25 @@ def check_public(files: list[str]) -> list[str]:
     for f in files:
         p = Path(f)
         if f.startswith("internal/"):
-            errs.append(f"{f}: internal/ 은 Homefield에서 추적하지 않는다 (RULES §1.1)")
+            errs.append(f"{f}: internal/ must not be tracked in Homefield (RULES §1.1)")
             continue
         if not p.is_file():
             continue
         try:
             text = p.read_text(encoding="utf-8")
         except UnicodeDecodeError:
-            continue  # 바이너리
+            continue  # binary
         for n, line in enumerate(text.splitlines(), 1):
             if PRIVATE_IP.search(line):
-                errs.append(f"{f}:{n}: 사설 IP 금지. 환경변수로 쓴다 (RULES §1.7)")
+                errs.append(f"{f}:{n}: private IP not allowed. Use an environment variable (RULES §1.7)")
         if p.parent == Path("docs") and p.suffix == ".md" and p.name != "README.md":
             errs += check_doc(p, "public", DOC_STATUS, UPPER_SNAKE)
         if (p.parent == Path("docs") or f == "README.md") and p.suffix == ".md":
             body = text.split("\n---", 1)[1] if text.startswith("---\n") else text
             if DATE.search(body):
-                errs.append(f"{f}: 배포 문서 본문에 날짜를 쓰지 않는다. 최종 상태만 쓴다 (RULES §1.3)")
+                errs.append(
+                    f"{f}: do not write dates in the body of a deployment doc. Write only the final state (RULES §1.3)"
+                )
     return errs
 
 

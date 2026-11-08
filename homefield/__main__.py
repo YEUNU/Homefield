@@ -1,4 +1,4 @@
-"""단독 실행: python3 -m homefield -p "<과제>" [--max-turns N] [--log trajectory.jsonl]"""
+"""Standalone run: python3 -m homefield -p "<task>" [--max-turns N] [--log trajectory.jsonl]"""
 
 import argparse
 import sys

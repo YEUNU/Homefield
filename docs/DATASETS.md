@@ -80,8 +80,8 @@ Convert every dataset to the evalkit task format (`docs/EVALUATION.md` §2) and 
 ### 3.2 Fact types
 | Type | What the customer knows | Example | How to make it |
 |---|---|---|---|
-| `definition` (definition type) | The definition of a term or calculation method | "매출은 세전이다" (Revenue is before tax) | Convert the definition and constraint fields of the original (`evidence`, `constraints`, synonym map) to natural language |
-| `anchor` (anchor type) | A number in an existing report. The customer does not know the definition | "10월 매출 보고서 총액은 1,645이다" (The total in the October revenue report is 1,645) | Aggregate the gold answer at a **coarser grain than the gold answer**. Do not use a number that exposes the gold value directly |
+| `definition` (definition type) | The definition of a term or calculation method | "매출은 세전이다" ("Revenue is before tax") | Convert the definition and constraint fields of the original (`evidence`, `constraints`, synonym map) to natural language |
+| `anchor` (anchor type) | A number in an existing report. The customer does not know the definition | "10월 매출 보고서 총액은 1,645이다" ("The total in the October revenue report is 1,645") | Aggregate the gold answer at a **coarser grain than the gold answer**. Do not use a number that exposes the gold value directly |
 
 An anchor fact comes from the gold answer, so it is circular. Fix the aggregation rule for each task and write it in `notes` in `task.json`.
 
