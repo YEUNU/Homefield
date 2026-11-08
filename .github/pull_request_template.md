@@ -1,7 +1,7 @@
-## 무엇을 왜
-<!-- 한두 문장 -->
+## What and why
+<!-- One or two sentences -->
 
-## 검증
-- [ ] eval 결과 첨부 (없으면 "미검증" 라벨)
-- [ ] 비밀값·고객 데이터·벤치마크 원본 없음
-- [ ] 설계 결정이면 `internal/decisions/` 추가
+## Verification
+- [ ] Attach the eval result (if there is none, add the "unverified" label)
+- [ ] No secrets, customer data, or original benchmark data
+- [ ] If this is a design decision, add a record to `internal/decisions/`

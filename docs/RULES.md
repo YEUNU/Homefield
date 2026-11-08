@@ -1,165 +1,168 @@
 ---
-status: 확정
+status: stable
 updated: 2026-11-08
-audience: 배포
+audience: public
 ---
-# Homefield 규칙 (문서·코드·배포)
+# Homefield rules (documents, code, release)
 
-이 문서가 규칙의 단일 원천이다. 다른 문서·스킬은 이 문서를 가리키기만 한다.
-규칙은 가능한 한 코드로 강제한다. 강제 수단은 §4 표에 있다.
+This document is the single source of rules. Other documents and skills only point to this document.
+Code enforces the rules wherever possible. The enforcement tools are in the table in §4.
 
-## 1. 문서 규칙
+## 1. Document rules
 
-### 1.1 위치: 배포 대 내부
-| 위치 | 저장소 | 공개 | 넣는 것 |
+### 1.1 Location: public and internal
+| Location | Repository | Visibility | Content |
 |---|---|---|---|
-| `docs/` | `YEUNU/Homefield` | **공개** | 사용법, 평가 규약, 데이터셋, 하네스 연결 방법, 이 규칙 |
-| `internal/` | `YEUNU/Homefield-internal` (Homefield 루트에 클론, git 제외) | 비공개 | 전략, 문제 정의, 차별점·선행 연구 분석, 자문 기록, 설계 문서, 결정 기록(ADR), 인프라 주소, 고객·회사 맥락 |
+| `docs/` | `YEUNU/Homefield` | **Public** | Usage, evaluation protocol, datasets, harness connection methods, these rules |
+| `internal/` | `YEUNU/Homefield-internal` (cloned in the Homefield root, excluded from git) | Private | Strategy, problem definition, analysis of differentiators and prior work, advisory records, design documents, decision records (ADR), infrastructure addresses, customer and company context |
 
-판단이 어려우면 `internal/`에 둔다. 공개는 나중에 옮겨서 한다.
+If you are not sure, put the document in `internal/`. Moving a document to the public repository is easy later.
 
-### 1.2 파일 이름
-| 종류 | 위치 | 이름 |
+### 1.2 File names
+| Type | Location | Name |
 |---|---|---|
-| 주요 문서 | `docs/`, `internal/` | `UPPER_SNAKE.md` (예: `EVALUATION.md`) |
-| 설계 문서 | `internal/design/` | `kebab-case.md` |
-| 결정 기록 | `internal/decisions/` | `NNNN-kebab-case.md` (번호 = 기존 최대 + 1) |
-| 저장소 안내 | 각 저장소 루트 | `README.md` |
+| Main document | `docs/`, `internal/` | `UPPER_SNAKE.md` (example: `EVALUATION.md`) |
+| Design document | `internal/design/` | `kebab-case.md` |
+| Decision record | `internal/decisions/` | `NNNN-kebab-case.md` (number = highest existing number + 1) |
+| Repository guide | Root of each repository | `README.md` |
 
-### 1.3 머리말 (front matter)
-`README.md`를 뺀 모든 문서는 첫 줄에 다음 머리말을 둔다.
+### 1.3 Front matter
+Every document except `README.md` starts with this front matter.
 
 ```yaml
 ---
-status: 초안 | 확정 | 폐기          # 결정 기록은: 결정 | 가정 | 폐기 | 대체됨
+status: draft | stable | deprecated    # decision records: accepted | assumed | deprecated | superseded
 updated: YYYY-MM-DD
-audience: 배포 | 내부               # docs/ 는 배포, internal/ 은 내부
+audience: public | internal            # docs/ is public, internal/ is internal
 ---
 ```
-- 내용을 바꾸면 `updated`를 고친다.
-- **배포 문서(`docs/`, `README.md`)는 최종 상태만 쓴다.** 날짜, 경위, 변경 이력("~하기로 함", "~를 지웠다", 버전 표기)은 쓰지 않는다. 이력은 git과 `internal/`이 맡는다.
-- 날짜는 머리말 `updated`에만 둔다.
+- When you change the content, change `updated`.
+- **Public documents (`docs/`, `README.md`) state only the final state.** Do not write dates, history, or change records (such as "we decided to", "we removed", or version marks). Git and `internal/` keep the history.
+- Put a date only in the front matter `updated`.
 
-### 1.4 문체 (ASD-STE100 기반)
-- 한국어로 쓴다. 식별자·명령·파일 이름은 원문 그대로 둔다.
-- 한 문장에 한 내용. 능동태. 짧은 문장.
-- 같은 대상에는 같은 용어를 쓴다 (§1.6).
-- 표와 목록을 산문보다 먼저 쓴다.
+### 1.4 Language and style (based on ASD-STE100)
+- Write public documents (`docs/`, `README.md`, the PR template) in English (ASD-STE100 Simplified Technical English).
+- Write internal documents (`internal/`) in Korean.
+- Keep identifiers, commands, and file names as they are.
+- Code comments and docstrings can be in Korean or English.
+- Write one idea in each sentence. Use the active voice. Use short sentences.
+- Use the same term for the same object (§1.6).
+- Use tables and lists before prose.
 
-### 1.5 근거 표기
-- 선행 연구·수치에는 출처(논문 ID 또는 URL)를 붙인다.
-- 원문을 직접 확인하지 않은 수치는 `(2차 자료)`, 확인하지 못한 것은 `(미확인)`으로 표시한다.
-- 표본 30 미만의 실험 결과는 "결론"이 아니라 "관찰"로 쓴다.
-- 근거 없는 초기값·목표값은 `(근거 없음)`으로 표시한다.
+### 1.5 Evidence marks
+- Add a source (paper ID or URL) to prior work and figures.
+- Mark a figure that you did not check in the original source as `(secondary source)`. Mark a figure that you could not check as `(unverified)`.
+- Write an experiment result with a sample size below 30 as an "observation", not a "conclusion".
+- Mark an initial value or target value that has no basis as `(no basis)`.
 
-### 1.6 용어
-| 용어 | 뜻 |
+### 1.6 Terms
+| Term | Meaning |
 |---|---|
-| 하네스 | 모델을 감싸 도구·루프·정책을 주는 실행 틀 |
-| 과제 | 고객 요청 1건 (`tasks/<id>/`) |
-| 에피소드 | 과제 1개 × 하네스 1개 × 실행 1회 |
-| engagement | 같은 고객·데이터 위에서 이어지는 과제 묶음 |
-| 원장 | 해석 결정과 가정을 기록하는 구조 |
-| 결정 / 가정 | 산출물을 바꿀 수 있는 해석 선택 / 묻지 않고 확정한 결정 |
-| 재작업 | 거절된 제출 |
-| CFC | 첫 정답까지 상호작용 비용 = 질문 왕복 + r × 재작업 |
-| 프로세스 케이스 | 프로세스 마이닝 용어. 이벤트 로그의 프로세스 인스턴스 1개. "과제"와 다르다 |
+| harness (하네스) | An execution frame that wraps a model and gives it tools, a loop, and policies |
+| task (과제) | One customer request (`tasks/<id>/`) |
+| episode (에피소드) | One task × one harness × one run |
+| engagement | A group of tasks that continue on the same customer and data |
+| ledger (원장) | The structure that records interpretation decisions and assumptions |
+| decision / assumption (결정 / 가정) | An interpretation choice that can change the output / a decision that the agent made without asking |
+| rework (재작업) | A rejected submission |
+| CFC | Cost to first correct answer = question round trips + r × rework |
+| process case (프로세스 케이스) | A process-mining term. One process instance in an event log. It is not a "task" |
 
-### 1.7 경로와 비밀
-- 문서 안 경로는 Homefield 루트 기준으로 쓴다 (예: `internal/PROBLEM.md`, `docs/EVALUATION.md`).
-- `docs/`와 코드에는 내부 IP·호스트·키를 쓰지 않는다. `$LOCAL_LLM_BASE_URL` 같은 환경변수로 쓴다.
+### 1.7 Paths and secrets
+- Write paths in documents relative to the Homefield root (examples: `internal/PROBLEM.md`, `docs/EVALUATION.md`).
+- Do not write internal IP addresses, hosts, or keys in `docs/` or in code. Use environment variables such as `$LOCAL_LLM_BASE_URL`.
 
-## 2. 코드 규칙
+## 2. Code rules
 
-### 2.1 언어와 의존성
-- Python 3.11 이상. 표준 라이브러리를 먼저 쓴다.
-- 런타임 외부 의존성을 추가하려면 결정 기록(ADR)을 남긴다.
-- 하네스 코어는 범용 에이전트 프레임워크(LangChain 등)를 import하지 않는다.
-- 모델 호출은 한 모듈(`homefield/model.py`)을 거친다. 다른 곳에서 HTTP로 모델을 직접 부르지 않는다.
+### 2.1 Language and dependencies
+- Use Python 3.11 or later. Use the standard library first.
+- To add a runtime external dependency, write a decision record (ADR).
+- The harness core must not import a general agent framework (such as LangChain).
+- All model calls go through one module (`homefield/model.py`). No other code calls a model directly over HTTP.
 
-### 2.2 구조와 이름
-| 위치 | 내용 |
+### 2.2 Structure and names
+| Location | Content |
 |---|---|
-| `homefield/` | 하네스 코어 (모델 호출, 루프, 도구, CLI) |
-| `evalkit/` | 평가 도구 (실행기, 에피소드, 어댑터, 채점, 보고) |
-| `tests/` | pytest 테스트 |
-| `tasks/<kebab-id>/` | 과제: `task.json` + 데이터 생성 파일 |
-| `scripts/` | 운영 스크립트 (연결 확인, 규칙 검사) |
-| `.claude/skills/` | Claude Code 스킬 |
+| `homefield/` | Harness core (model call, loop, tools, CLI) |
+| `evalkit/` | Evaluation tool (runner, episode, adapters, scoring, report) |
+| `tests/` | pytest tests |
+| `tasks/<kebab-id>/` | Task: `task.json` + data generation files |
+| `scripts/` | Operation scripts (connection check, rule check) |
+| `.claude/skills/` | Claude Code skills |
 
-- 모듈·함수·변수: `snake_case`. 클래스: `PascalCase`. 상수: `UPPER_SNAKE`.
-- 식별자는 영어. 주석·docstring은 한국어로 써도 된다.
-- 실행 진입점은 `python3 -m <패키지>.<모듈>` 형태로 둔다.
-- 스크립트 이름: `<동사>_<명사>` (예: `check_rules.py`, `check_llm.sh`).
-- 하네스 ID·결과 필드 이름은 `docs/EVALUATION.md` §6–7이 원천이다. 코드와 문서는 그 이름을 그대로 쓴다.
+- Modules, functions, variables: `snake_case`. Classes: `PascalCase`. Constants: `UPPER_SNAKE`.
+- Identifiers are in English. Comments and docstrings can be in Korean or English.
+- Make each entry point runnable as `python3 -m <package>.<module>`.
+- Script names: `<verb>_<noun>` (examples: `check_rules.py`, `check_llm.sh`).
+- `docs/EVALUATION.md` §6–7 is the source of harness IDs and result field names. Code and documents use these names exactly.
 
-### 2.3 품질
-- 린트·서식: `ruff check`와 `ruff format --check` 통과 (설정: `pyproject.toml`). 커밋 전에 `uvx ruff format .`을 돌린다.
-- 동작을 바꾸면 테스트를 같이 바꾼다. 단위 테스트는 네트워크·LLM을 부르지 않는다 (시뮬레이터는 함수로 대체).
-- 하네스 동작 변경은 eval 결과를 PR에 붙인다 (`eval-first` 스킬). 없으면 "미검증"이라고 쓴다.
-- 코드 작성은 `karpathy-guidelines` 스킬을 따른다: 요청된 것만, 단순하게, 필요한 곳만 바꾼다.
+### 2.3 Quality
+- Lint and format: `ruff check` and `ruff format --check` must pass (settings: `pyproject.toml`). Before you commit, run `uvx ruff format .`.
+- When you change behavior, change the tests at the same time. Unit tests do not call the network or an LLM (replace the simulator with a function).
+- For a change to harness behavior, attach the eval result to the PR (`eval-first` skill). If there is none, write "unverified".
+- Follow the `karpathy-guidelines` skill when you write code: do only what is requested, keep it simple, and change only what is necessary.
 
-### 2.4 비밀과 데이터
-- 비밀값은 `.env`에만 둔다. 출력·로그·커밋하지 않는다.
-- 커밋 금지: `.env`, 키 파일, `data/`, `evals/results/`, 고객 데이터·이름·스키마, Engagement 상태.
-- 벤치마크 원본 데이터는 커밋하지 않는다. 라이선스는 `docs/DATASETS.md`에 적는다.
+### 2.4 Secrets and data
+- Keep secret values only in `.env`. Do not print them, log them, or commit them.
+- Do not commit: `.env`, key files, `data/`, `evals/results/`, customer data, names, or schemas, engagement state.
+- Do not commit original benchmark data. Write the license in `docs/DATASETS.md`.
 
-## 3. 배포 규칙
+## 3. Release rules
 
-### 3.1 저장소
-| 저장소 | 공개 | 브랜치 규칙 |
+### 3.1 Repositories
+| Repository | Visibility | Branch rule |
 |---|---|---|
-| `YEUNU/Homefield` | 공개 | §3.2–3.5 전부 |
-| `YEUNU/Homefield-internal` | 비공개 | `main`에 직접 커밋 허용. 커밋 메시지 형식(§3.3)은 같다 |
+| `YEUNU/Homefield` | Public | All of §3.2–3.5 |
+| `YEUNU/Homefield-internal` | Private | Direct commits to `main` are allowed. The commit message format (§3.3) is the same |
 
-### 3.2 브랜치
-- `main`: 항상 동작하는 상태. 직접 push 금지. PR로만 병합한다.
-- 작업 브랜치: `<유형>/<kebab-설명>`. 유형: `feat`, `fix`, `eval`, `docs`, `chore`, `exp`, `refactor`, `test`.
-- `exp/*`: 실험용. 병합하지 않아도 된다. 결과는 `internal/decisions/`에 남긴다.
-- 병합: squash merge. 병합 뒤 브랜치를 지운다.
+### 3.2 Branches
+- `main`: always in a working state. Direct push is forbidden. Merge only through a PR.
+- Work branch: `<type>/<kebab-description>`. Types: `feat`, `fix`, `eval`, `docs`, `chore`, `exp`, `refactor`, `test`.
+- `exp/*`: for experiments. You do not have to merge them. Record the results in `internal/decisions/`.
+- Merge: squash merge. Delete the branch after the merge.
 
-### 3.3 커밋 메시지
-- 형식: `<유형>(<범위>): <요약>`. 요약은 72자(글자 수) 이내. 본문에 "왜"를 쓴다.
-- 범위 예: `core`, `policy`, `state`, `eval`, `evalkit`, `adapter`, `onto`, `p1`…`p5`, `skills`, `docs`, `rules`.
+### 3.3 Commit messages
+- Format: `<type>(<scope>): <summary>`. The summary has at most 72 characters. Write the "why" in the body.
+- Scope examples: `core`, `policy`, `state`, `eval`, `evalkit`, `adapter`, `onto`, `p1`…`p5`, `skills`, `docs`, `rules`.
 
 ### 3.4 PR
-- 로컬 CI 통과: push 뒤 `scripts/ci.sh --report`로 커밋 상태 `local-ci`=success를 올린다. GitHub Actions는 쓰지 않는다 (§4.1).
-- PR 본문은 템플릿을 채운다. eval 결과 또는 "미검증".
-- 설계 결정이 있으면 `internal/decisions/`에 기록을 추가하고 PR에는 번호만 적는다 (내용은 비공개).
+- Local CI must pass: after you push, run `scripts/ci.sh --report` to set the commit status `local-ci`=success. GitHub Actions is not used (§4.1).
+- Fill in the PR template. Give the eval result or "unverified".
+- If the PR has a design decision, add a record to `internal/decisions/` and write only its number in the PR (the content is private).
 
-### 3.5 릴리스
-- 버전: SemVer `vMAJOR.MINOR.PATCH`. 1.0 전에는 MINOR 증가가 호환 깨짐일 수 있다.
-- 릴리스 = `main` 커밋에 annotated tag. GitHub Release 노트에 변경점과 eval 요약을 쓴다.
-- 산출물: 단독 CLI 패키지, Claude Code 플러그인(skill·hook·MCP). 고객 현장 설치는 온프레미스 모델 기준이다.
+### 3.5 Release
+- Version: SemVer `vMAJOR.MINOR.PATCH`. Before 1.0, a MINOR increase can break compatibility.
+- A release is an annotated tag on a `main` commit. Write the changes and an eval summary in the GitHub Release notes.
+- Deliverables: a standalone CLI package and a Claude Code plugin (skill, hook, MCP). Installation at a customer site assumes an on-premises model.
 
-### 3.6 사람의 승인이 필요한 동작
-push, PR 생성, 태그, 릴리스, force-push, 기록 재작성, 저장소 설정·공개 범위 변경.
+### 3.6 Actions that need human approval
+push, PR creation, tag, release, force-push, history rewrite, change of repository settings or visibility.
 
-## 4. 강제 수단
-| 규칙 | 수단 | 위치 |
+## 4. Enforcement tools
+| Rule | Tool | Location |
 |---|---|---|
-| 비밀·키 파일·`data/` 커밋 금지 | pre-commit hook, 로컬 CI gitleaks | `.githooks/pre-commit`, `scripts/ci.sh` |
-| 사설 IP(10/8, 172.16/12, 192.168/16) 금지 | pre-commit, 로컬 CI | `scripts/check_rules.py` |
-| `internal/` 추적 금지 | `.gitignore`, 로컬 CI | `scripts/check_rules.py` |
-| 문서 머리말·이름 규칙 | pre-commit, 로컬 CI | `scripts/check_rules.py` |
-| 커밋 메시지 형식 | commit-msg hook | `.githooks/commit-msg` |
-| 린트·서식 | 로컬 CI | `ruff check`, `ruff format --check` |
-| 테스트 | 로컬 CI | `pytest` |
-| push 전 전체 검사 | pre-push hook | `.githooks/pre-push` → `scripts/ci.sh` |
-| `main` 직접 push 금지, PR·`local-ci` 필수, force-push·삭제 금지 | GitHub 브랜치 보호 | 설정됨. 관리자 우회는 비상용 |
-| 문체·근거 표기, 배포 문서의 이력 금지 | 사람 리뷰, 규칙 검사(본문 날짜) | `scripts/check_rules.py` |
+| Do not commit secrets, key files, or `data/` | pre-commit hook, local CI gitleaks | `.githooks/pre-commit`, `scripts/ci.sh` |
+| No private IP addresses (10/8, 172.16/12, 192.168/16) | pre-commit, local CI | `scripts/check_rules.py` |
+| Do not track `internal/` | `.gitignore`, local CI | `scripts/check_rules.py` |
+| Document front matter and name rules | pre-commit, local CI | `scripts/check_rules.py` |
+| Commit message format | commit-msg hook | `.githooks/commit-msg` |
+| Lint and format | local CI | `ruff check`, `ruff format --check` |
+| Tests | local CI | `pytest` |
+| Full check before push | pre-push hook | `.githooks/pre-push` → `scripts/ci.sh` |
+| No direct push to `main`, PR and `local-ci` required, no force-push or deletion | GitHub branch protection | Configured. Administrator bypass is for emergencies only |
+| Style, evidence marks, no history in public documents | Human review, rule check (dates in body) | `scripts/check_rules.py` |
 
-### 4.1 로컬 CI
-- CI는 GitHub Actions가 아니라 개발자 PC에서 돈다 (`scripts/ci.sh`). 검사: ruff check, ruff format, pytest, 규칙 검사, gitleaks.
-- `pre-push` hook이 push 전에 자동으로 돌린다. 실패하면 push가 막힌다.
-- PR에 결과를 보이려면 push 뒤 `scripts/ci.sh --report`를 돌린다. GitHub 커밋 상태 `local-ci`가 기록된다.
-- 자체 호스팅 GitHub 러너는 쓰지 않는다. 공개 저장소에서는 외부 PR 코드가 이 PC에서 실행될 위험이 있다.
-- 필요 도구: `uv`(uvx), `gitleaks`(Homebrew), `gh`(로그인 상태).
+### 4.1 Local CI
+- CI runs on the developer PC, not on GitHub Actions (`scripts/ci.sh`). Checks: ruff check, ruff format, pytest, rule check, gitleaks.
+- The `pre-push` hook runs it automatically before each push. If it fails, the push is blocked.
+- To show the result on a PR, run `scripts/ci.sh --report` after the push. This records the GitHub commit status `local-ci`.
+- Do not use a self-hosted GitHub runner. In a public repository, code from an external PR can run on this PC.
+- Required tools: `uv` (uvx), `gitleaks` (Homebrew), `gh` (logged in).
 
-## 5. 처음 설정
+## 5. First-time setup
 ```bash
 git config core.hooksPath .githooks
-brew install gitleaks    # 로컬 CI용
-git clone https://github.com/YEUNU/Homefield-internal.git internal   # 권한이 있을 때
+brew install gitleaks    # for local CI
+git clone https://github.com/YEUNU/Homefield-internal.git internal   # if you have access
 cp .env.example .env
 ```

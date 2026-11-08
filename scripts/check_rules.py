@@ -14,8 +14,8 @@ from pathlib import Path
 PRIVATE_IP = re.compile(
     r"\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b"
 )
-DOC_STATUS = {"초안", "확정", "폐기"}
-ADR_STATUS = {"결정", "가정", "폐기", "대체됨"}
+DOC_STATUS = {"draft", "stable", "deprecated"}
+ADR_STATUS = {"accepted", "assumed", "deprecated", "superseded"}
 UPPER_SNAKE = re.compile(r"^[A-Z][A-Z0-9_]*\.md$")
 KEBAB = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*\.md$")
 DATE = re.compile(r"\b20\d{2}-\d{2}(-\d{2})?\b")
@@ -74,7 +74,7 @@ def check_public(files: list[str]) -> list[str]:
             if PRIVATE_IP.search(line):
                 errs.append(f"{f}:{n}: 사설 IP 금지. 환경변수로 쓴다 (RULES §1.7)")
         if p.parent == Path("docs") and p.suffix == ".md" and p.name != "README.md":
-            errs += check_doc(p, "배포", DOC_STATUS, UPPER_SNAKE)
+            errs += check_doc(p, "public", DOC_STATUS, UPPER_SNAKE)
         if (p.parent == Path("docs") or f == "README.md") and p.suffix == ".md":
             body = text.split("\n---", 1)[1] if text.startswith("---\n") else text
             if DATE.search(body):
@@ -89,11 +89,11 @@ def check_internal(root: Path) -> list[str]:
         if ".git" in rel.parts or p.name == "README.md":
             continue
         if rel.parts[0] == "decisions":
-            errs += check_doc(p, "내부", ADR_STATUS, ADR_NAME)
+            errs += check_doc(p, "internal", ADR_STATUS, ADR_NAME)
         elif rel.parts[0] == "design":
-            errs += check_doc(p, "내부", DOC_STATUS, KEBAB)
+            errs += check_doc(p, "internal", DOC_STATUS, KEBAB)
         else:
-            errs += check_doc(p, "내부", DOC_STATUS, UPPER_SNAKE)
+            errs += check_doc(p, "internal", DOC_STATUS, UPPER_SNAKE)
     return errs
 
 

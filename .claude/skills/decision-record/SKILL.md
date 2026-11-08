@@ -10,9 +10,9 @@ description: Record a design decision or an unconfirmed assumption for the FDE h
 ## 형식
 ```markdown
 ---
-status: 결정 | 가정 | 폐기 | 대체됨
+status: accepted | assumed | deprecated | superseded
 updated: YYYY-MM-DD
-audience: 내부
+audience: internal
 ---
 # NNNN. <제목>
 - 영향 범위: 코어 | 어댑터 | 도메인 팩 | eval | P1–P5
@@ -32,6 +32,6 @@ audience: 내부
 ```
 
 ## 규칙
-- 사용자가 확인하지 않은 선택은 상태를 "가정"으로 둔다. (불확실성 원장과 같은 원칙.)
+- 사용자가 확인하지 않은 선택은 상태를 `assumed`로 둔다. (불확실성 원장과 같은 원칙.)
 - 근거에는 출처(논문·문서 링크)를 붙인다. 재현되지 않은 수치는 "(미재현)"으로 표시한다.
-- 기존 결정을 뒤집으면 새 문서를 만들고, 옛 문서 상태를 "대체됨"으로 바꾼다.
+- 기존 결정을 뒤집으면 새 문서를 만들고, 옛 문서 상태를 `superseded`로 바꾼다.
