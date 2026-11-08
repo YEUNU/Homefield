@@ -1,1 +1,1 @@
-"""Homefield 하네스 코어."""
+"""Homefield harness core."""

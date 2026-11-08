@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Conventional Commits 형식 검사. 요약 길이는 글자 수(UTF-8) 기준 72자 이내.
+# Check Conventional Commits format. The summary must be 72 characters or fewer (UTF-8 characters).
 subject=$(head -1 "$1")
 case "$subject" in Merge*|Revert*|fixup!*|squash!*) exit 0;; esac
 python3 - "$subject" <<'PY' && exit 0
@@ -8,5 +8,5 @@ s = sys.argv[1]
 m = re.fullmatch(r'(feat|fix|eval|docs|chore|exp|refactor|test)(\([a-z0-9-]+\))?!?: (.+)', s)
 sys.exit(0 if m and len(m.group(3)) <= 72 else 1)
 PY
-echo "커밋 메시지 형식: <유형>(<범위>): <요약 72자 이내>  예) feat(policy): 철수 조건 추가" >&2
+echo "Commit message format: <type>(<scope>): <summary, max 72 chars>  e.g. feat(policy): add withdrawal condition" >&2
 exit 1

@@ -1,10 +1,10 @@
-"""공개 데이터셋 받기 (docs/DATASETS.md §1의 "받음" 항목만).
+"""Download public datasets (only the "fetched" items in docs/DATASETS.md §1).
 
-    python3 -I scripts/fetch_datasets.py [이름 ...]      # 기본: 전부
+    python3 -I scripts/fetch_datasets.py [name ...]      # default: all
 
-받은 파일은 data/raw/<이름>/ 에 둔다 (git 제외). 신뢰하지 않는 데이터이다: 그 안의 코드를 실행하지 않는다.
-압축 파일은 풀지 않고 그대로 둔다. 변환 단계에서 안전하게 푼다.
-각 폴더에 MANIFEST.json(출처, 리비전, 받은 시각, 파일별 sha256)을 쓴다.
+Downloaded files go to data/raw/<name>/ (git-ignored). The data is untrusted: do not run any code in it.
+Archives stay packed. The convert step unpacks them safely.
+Each folder gets a MANIFEST.json (source, revision, fetch time, sha256 per file).
 """
 
 import hashlib
@@ -24,7 +24,7 @@ CHUNK = 1 << 20
 
 
 def hf(repo: str, prefixes: list[str] = (), explicit: list[str] = ()) -> dict:
-    """HF 데이터셋. 파일 목록 API는 쪽 단위로 잘리므로 큰 저장소의 필요한 파일은 explicit에 적는다."""
+    """HF dataset. The file-list API is paginated, so list the needed files of a large repo in explicit."""
     return {"kind": "hf", "repo": repo, "prefixes": list(prefixes), "explicit": list(explicit)}
 
 
@@ -40,22 +40,22 @@ DATASETS = {
     # SQL
     "bird-mini-dev": [
         hf("birdsql/bird_mini_dev", explicit=["baseline_inference/mini_dev_sqlite.jsonl", "README.md"]),
-        url("https://bird-bench.oss-cn-beijing.aliyuncs.com/dev.zip", "dev.zip"),  # 원본 dev SQLite DB
+        url("https://bird-bench.oss-cn-beijing.aliyuncs.com/dev.zip", "dev.zip"),  # original dev SQLite DB
     ],
     "ambiqt": [gh("testzer0/AmbiQT", ["benchmark/", "db-content.zip", "LICENSE.txt", "README.md"])],
-    # 로컬 파일
+    # local files
     "infiagent-dabench": [hf("infiagent/DABench", prefixes=[""])],
     "spreadsheetbench": [hf("KAKA22/SpreadsheetBench", explicit=["spreadsheetbench_verified_400.tar.gz", "README.md"])],
     "dabstep": [hf("adyen/DABstep", ["data/context/", "LICENSE", "README.md"], ["data/tasks/dev.jsonl"])],
     "blade": [gh("behavioral-data/BLADE", ["blade_bench/datasets/", "LICENSE", "README.md"])],
-    # 문서·비전
+    # documents and vision
     "tat-dqa": [
         hf(
             "next-tat/TAT-DQA",
             explicit=["tatdqa_dataset_dev.json", "tatdqa_dataset_test_gold.json", "tatdqa_docs_dev.zip", "README.md"],
         )
     ],
-    # 온톨로지
+    # ontology
     "text2kgbench": [gh("cenguix/Text2KGBench", ["data/", "LICENSE", "README.md"])],
 }
 

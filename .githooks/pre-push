@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-# push 전에 로컬 CI를 돌린다. 실패하면 push를 막는다.
+# Run the local CI before push. Block the push if it fails.
 exec "$(git rev-parse --show-toplevel)/scripts/ci.sh"

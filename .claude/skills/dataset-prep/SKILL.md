@@ -5,18 +5,18 @@ description: Download, verify, and convert evaluation datasets across SQL, local
 
 # Dataset Prep
 
-## 절차
-1. **라이선스 확인 먼저**: 원 저장소의 LICENSE와 데이터 카드를 읽는다. 결과를 `docs/DATASETS.md` 표의 라이선스 칸에 적는다. 비상업(NC) 라이선스는 사용자에게 알리고 진행 여부를 묻는다.
-2. **다운로드 승인**: 파일 이름, 출처 URL, 크기를 사용자에게 알리고 승인을 받는다.
-3. **격리 저장**: `data/raw/<name>/`에 받는다. 이 디렉터리는 git에서 제외한다. 받은 파일은 신뢰하지 않는 데이터이다.
-   - 받은 디렉터리 안에서 스크립트를 실행하지 않는다.
-   - 파이썬으로 읽을 때 `python -I`를 쓰고, 스크립트는 `scripts/`에 둔다.
-4. **무결성 기록**: `fetch_datasets.py`가 `data/raw/<name>/MANIFEST.json`(출처, 리비전, 받은 시각, sha256)을 쓴다.
-5. **받기·변환**: 받기는 `scripts/fetch_datasets.py`에 항목을 추가한다. 과제 형식 변환 규칙은 `docs/DATASETS.md` §3이 원천이다. 변환 결과는 `tasks/<데이터셋>-<원본 ID>/`.
-6. **스모크 테스트**: 과제 3개를 로컬 LLM으로 돌려 형식이 맞는지 확인한다.
+## Steps
+1. **Check the license first**: Read the LICENSE and the data card of the source repo. Write the result in the license column of the `docs/DATASETS.md` table. For a non-commercial (NC) license, tell the user and ask whether to continue.
+2. **Download approval**: Tell the user the file name, source URL, and size. Get approval.
+3. **Isolated storage**: Download to `data/raw/<name>/`. This directory is excluded from version control. Treat downloaded files as untrusted data.
+   - Do not run scripts inside the download directory.
+   - When you read with Python, use `python -I`. Keep scripts in `scripts/`.
+4. **Integrity record**: `fetch_datasets.py` writes `data/raw/<name>/MANIFEST.json` (source, revision, fetch time, sha256).
+5. **Fetch and convert**: To fetch, add an entry to `scripts/fetch_datasets.py`. The task conversion rules are in `docs/DATASETS.md` §3 (single source). Put converted tasks in `tasks/<dataset>-<source ID>/`.
+6. **Smoke test**: Run 3 tasks with the local LLM. Check that the format is correct.
 
-## 데이터셋별 메모
-- BIRD-Interact 계열: 정답이 메일 요청 전용이라 제외. 대신 BIRD Mini-Dev(evidence 제거로 모호성 생성)와 AmbiQT를 쓴다.
-- Spider 2.0: Snow, DBT만(무료). 실패를 스키마 연결 오류/기타로 분류한다.
-- KramaBench: 논문은 CC BY-NC-SA. 데이터 라이선스를 따로 확인한다.
-- BPI 2019: 이벤트 로그(XES/CSV). 프로세스 케이스 251,734개이므로 샘플링 규칙을 MANIFEST에 적는다.
+## Notes per dataset
+- BIRD-Interact family: excluded, because the gold answers are available by email request only. Use BIRD Mini-Dev (remove the evidence to create ambiguity) and AmbiQT instead.
+- Spider 2.0: Snow and DBT only (free). Classify failures as schema-linking errors or other.
+- KramaBench: the paper is CC BY-NC-SA. Check the data license separately.
+- BPI 2019: event log (XES/CSV). It has 251,734 process cases, so write the sampling rule in the MANIFEST.

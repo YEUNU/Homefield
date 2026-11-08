@@ -1,12 +1,13 @@
-"""에피소드 = 과제 1개 × 하네스 1개 실행.
+"""Episode = one run of one task x one harness.
 
-에이전트에게 주는 공통 규약 (셸만 있으면 된다):
-- 답은 작업 폴더의 답 파일(task["answer_file"])에 쓴다.
-- `<bin>/ask_user "질문"`  → 고객 시뮬레이터의 답을 출력한다. 질문 예산이 있다.
-- `<bin>/submit_answer`    → ACCEPTED 또는 REJECTED. 제출 예산이 있다.
+Common protocol given to the agent (a shell is enough):
+- Write the answer to the answer file in the work folder (task["answer_file"]).
+- `<bin>/ask_user "question"`  -> prints the customer simulator's reply. There is a question budget.
+- `<bin>/submit_answer`    -> ACCEPTED or REJECTED. There is a submit budget.
 
-정답·숨은 사실은 이 프로세스 메모리와 작업 폴더 밖 사본에만 있다.
-한계: 같은 머신에서 돌므로 에이전트가 파일 시스템을 뒤지면 과제 원본을 찾을 수 있다. 격리는 Docker 단계에서 한다.
+The gold answer and hidden facts exist only in this process's memory and in copies outside the work folder.
+Limit: it runs on the same machine, so an agent that searches the file system
+can find the task source. Isolation comes at the Docker stage.
 """
 
 import json
@@ -20,7 +21,7 @@ from pathlib import Path
 from evalkit.check import check_sql_result
 
 CFC_WEIGHTS = (1, 3, 10)
-UNKNOWN_REPLY = "I don't know."  # 고객 시뮬레이터가 사실 밖 질문에 쓰는 고정 문구
+UNKNOWN_REPLY = "I don't know."  # fixed reply the customer simulator uses for questions outside the facts
 
 
 def is_unknown(answer: str) -> bool:
@@ -28,10 +29,10 @@ def is_unknown(answer: str) -> bool:
 
 
 def guess_baseline(n_interpretations: int, submit_budget: int) -> dict:
-    """해석을 균등하게, 중복 없이 추측할 때의 기준선 (질문 0회)."""
+    """Baseline for guessing interpretations uniformly, without repeats (0 questions)."""
     tries = min(n_interpretations, submit_budget)
     p = tries / n_interpretations
-    rework = (tries - 1) / 2  # 성공했을 때 앞선 실패 수의 기댓값
+    rework = (tries - 1) / 2  # expected number of earlier failures given success
     return {"p_success": round(p, 3), "cfc_given_success": {str(r): round(r * rework, 2) for r in CFC_WEIGHTS}}
 
 
@@ -63,7 +64,7 @@ class Episode:
         self._server = None
         self.t0 = None
 
-    # --- 서버 ---
+    # --- server ---
     def start(self):
         ep = self
 
@@ -101,7 +102,7 @@ class Episode:
             self._server.server_close()
         (self.root / "events.jsonl").write_text("".join(json.dumps(e, ensure_ascii=False) + "\n" for e in self.events))
 
-    # --- 동작 ---
+    # --- behavior ---
     def _count(self, kind: str) -> int:
         return sum(1 for e in self.events if e["kind"] == kind)
 
@@ -127,13 +128,13 @@ class Episode:
                 return "BUDGET_EXHAUSTED: no more submissions. Stop now."
             answer = self.work / self.task["answer_file"]
             ok, error_kind, preview = check_sql_result(answer, self.gold_db, self.task["check"])
-            # 사후 분석용으로 제출물·결과를 로그에만 남긴다
+            # Keep the submission and result in the log only, for post-hoc analysis
             submitted = answer.read_text()[:4000] if answer.exists() else None
             self._log(kind="submit", ok=ok, error_kind=error_kind, result=preview, answer=submitted)
-            # 실제 고객이 주는 정보만 준다: 남은 횟수·SQL 오류 내용은 알려 주지 않는다.
+            # Give only what a real customer gives: no remaining count and no SQL error text.
             return "ACCEPTED" if ok else "REJECTED: the customer says this result is not what they need."
 
-    # --- 지표 ---
+    # --- metrics ---
     def accepted(self) -> bool:
         return any(e["kind"] == "submit" and e["ok"] for e in self.events)
 
@@ -143,11 +144,12 @@ class Episode:
         n_ask = self._count("ask")
         n_rework = sum(1 for e in subs if not e["ok"])
         budget = self.task["budget"]
-        cost = {  # 실패 포함 비용: 실패하면 예산을 다 쓴 것으로 본다
+        cost = {  # cost with failures included: a failure counts as the full budget spent
             str(r): (n_ask + r * n_rework) if accepted else (budget["ask"] + r * budget["submit"]) for r in CFC_WEIGHTS
         }
         return {
-            # 질문도 제출도 없이 끝났는가 (조기 종료, 규약 대신 대화 글로 질문 등). 실패로 세고 진단용으로 따로 본다.
+            # Did it end with no question and no submission (early stop, asking in chat text
+            # instead of the protocol, etc.)? Count it as a failure and track it separately.
             "acted": n_ask + len(subs) > 0,
             "accepted": accepted,
             "n_questions": n_ask,

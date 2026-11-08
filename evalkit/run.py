@@ -1,9 +1,11 @@
-"""과제 × 하네스 실행기.
+"""Task x harness runner.
 
     python3 -m evalkit.run --task tasks/smoke-revenue --harness claude,codex,opencode,mini,openhands
 
-결과: evals/results/<날짜>.jsonl 에 한 줄씩 추가. 에피소드 기록은 $HF_RUNS_DIR (기본: 임시 폴더/homefield-runs).
-에피소드 폴더는 저장소 밖에 둔다. 저장소 안이면 하네스가 우리 CLAUDE.md·스킬을 읽어 비교가 오염된다.
+Results: append one line per episode to evals/results/<date>.jsonl.
+Episode records go to $HF_RUNS_DIR (default: temp dir/homefield-runs).
+Keep episode folders outside the repo.
+Inside the repo, a harness would read our CLAUDE.md and skills and spoil the comparison.
 """
 
 import argparse
@@ -39,21 +41,23 @@ Rules:
    It prints ACCEPTED or REJECTED. If REJECTED, revise the query and submit again. Budget: {submit} submissions.
 4. Stop as soon as you see ACCEPTED, or BUDGET_EXHAUSTED for submissions.{extra}"""
 
-# 프롬프트 변형. E1 = 기존 하네스에 "먼저 물어라" 정책을 말로만 준다 (메커니즘 없이).
+# Prompt variants. E1 = give an existing harness the "ask first" policy in words only (no mechanism).
 VARIANTS = {
     "E0": "",
     "E1": """
 5. Before writing the query, list the interpretations of the request that would change the result.
    Ask the customer about each such interpretation before your first submission. Do not guess them.
    For any interpretation you did not confirm, state your assumption in a SQL comment in the answer file.""",
-    # E2 = E1 + 앵커 조회 전략을 말로만 준다. 앵커 메커니즘(우리 하네스)이 프롬프트로 재현되는지 가르는 대조군.
+    # E2 = E1 + the anchor-lookup strategy in words only. A control that tests whether
+    # the anchor mechanism (our harness) can be reproduced by a prompt.
     "E2": """
 5. Before writing the query, list the interpretations of the request that would change the result.
    Customers often cannot answer technical definition questions, but they know numbers from their existing reports.
    If the customer cannot answer a definition question, ask for a number they already know (for example a total
    from their report) and keep only the interpretations whose result matches that number. Do not guess.
    For any interpretation you did not confirm, state your assumption in a SQL comment in the answer file.""",
-    # E3 = 앵커 전략을 절차로 명시한 가장 강한 프롬프트 대조군. 이것으로 재현되면 앵커 메커니즘 주장을 접는다.
+    # E3 = the strongest prompt control: the anchor strategy as an explicit procedure.
+    # If this reproduces the effect, we drop the anchor-mechanism claim.
     "E3": """
 5. Follow this procedure exactly:
    a) List every decision in the request that changes the result, with its options, and the candidate queries.
@@ -130,7 +134,7 @@ def run_episode(
 
 
 def finished_episodes(results: Path, since: str) -> set[tuple]:
-    """결과 파일에서 since 이후 기록된 에피소드의 (과제, 하네스, 변형, 반복) 집합."""
+    """Set of (task, harness, variant, repeat) for episodes recorded since `since` in the results file."""
     if not results.exists():
         return set()
     done = set()
@@ -143,14 +147,14 @@ def finished_episodes(results: Path, since: str) -> set[tuple]:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--task", required=True, help="쉼표로 여러 개")
+    ap.add_argument("--task", required=True, help="comma-separated list")
     ap.add_argument("--harness", default=",".join(ADAPTERS))
     ap.add_argument("--model", default=llm.DEFAULT_MODEL)
     ap.add_argument("--timeout", type=int, default=900)
-    ap.add_argument("--variant", default="E0", help="쉼표로 여러 개: E0,E1")
+    ap.add_argument("--variant", default="E0", help="comma-separated list: E0,E1")
     ap.add_argument("--repeat", type=int, default=1)
-    ap.add_argument("--jobs", type=int, default=1, help="동시에 돌릴 에피소드 수")
-    ap.add_argument("--resume", default="", help="이 시각(ISO) 이후 결과 파일에 있는 에피소드는 건너뛴다")
+    ap.add_argument("--jobs", type=int, default=1, help="number of episodes to run at the same time")
+    ap.add_argument("--resume", default="", help="skip episodes already in the results file since this time (ISO)")
     args = ap.parse_args()
 
     runs_root = Path(os.environ.get("HF_RUNS_DIR", Path(tempfile.gettempdir()) / "homefield-runs"))
@@ -165,7 +169,8 @@ def main():
     results.mkdir(parents=True, exist_ok=True)
     out = results / f"{datetime.now():%Y-%m-%d}.jsonl"
 
-    # 반복을 바깥 고리로 둔다: 서버 상태가 시간에 따라 바뀌어도 하네스·변형에 고르게 퍼진다.
+    # Repeats are the outer loop: if the server state drifts over time,
+    # the drift spreads evenly over harnesses and variants.
     jobs = [
         (task_dir, task, src_db, h, v, rep)
         for rep in range(args.repeat)

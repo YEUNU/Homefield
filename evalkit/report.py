@@ -1,9 +1,11 @@
-"""결과 jsonl 요약: 변형 × 하네스별.
+"""Summarize a results jsonl: by variant x harness.
 
-    python3 -m evalkit.report evals/results/<날짜>.jsonl --task tasks/anchor-revenue [--since 2026-11-08T18:00]
+    python3 -m evalkit.report evals/results/<date>.jsonl --task tasks/anchor-revenue [--since 2026-11-08T18:00]
 
-- 질문·제출 없이 끝난 에피소드(행동 없음)도 실패로 포함하고, 그 수를 따로 보인다.
-- 수락률은 Wilson 95% 구간, 비용은 실패 포함 평균 ± 95% 구간(정규 근사)으로 낸다.
+- Episodes that end with no question and no submission (no action) count as failures.
+  Their number is shown separately.
+- Acceptance uses the Wilson 95% interval. Cost is the mean over all episodes
+  (failures included) ± a 95% interval (normal approximation).
 """
 
 import argparse
@@ -15,16 +17,16 @@ from statistics import mean, stdev
 
 from evalkit.episode import CFC_WEIGHTS, guess_baseline
 
-# 옛 필드 이름 → 현재 이름 (이름 정규화 이전 결과 호환)
+# Old field name -> current name (compatible with results from before the rename)
 LEGACY_KEYS = {"case_id": "task_id", "prompt_variant": "variant", "success": "accepted"}
 
 
 def normalize(row: dict, budget: dict | None) -> dict:
-    if "prompt_variant" in row:  # 옛 형식에서 "variant"는 하네스였다
+    if "prompt_variant" in row:  # in the old format "variant" was the harness
         row = {**row, "harness": row.pop("variant")}
     row = {LEGACY_KEYS.get(k, k): v for k, v in row.items()}
     row.setdefault("acted", row.get("valid", row.get("n_questions", 0) + row.get("n_submissions", 0) > 0))
-    if "cost" not in row and budget:  # 옛 행: 실패 포함 비용을 다시 계산
+    if "cost" not in row and budget:  # old row: recompute the cost with failures included
         row["cost"] = {
             str(r): (row["n_questions"] + r * row["n_rework"])
             if row["accepted"]
@@ -54,8 +56,10 @@ def mean_ci(xs: list[float]) -> str:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("results", type=Path)
-    ap.add_argument("--task", type=Path, help="과제 폴더. 주면 그 과제 행만 보고, 추측 기준선을 낸다")
-    ap.add_argument("--since", default="", help="이 시각 이후 행만 (ISO 문자열 비교)")
+    ap.add_argument(
+        "--task", type=Path, help="task folder. If given, report only rows of that task and show the guessing baseline"
+    )
+    ap.add_argument("--since", default="", help="only rows since this time (ISO string compare)")
     args = ap.parse_args()
 
     task = json.loads((args.task / "task.json").read_text()) if args.task else None
@@ -69,15 +73,15 @@ def main():
     for r in rows:
         groups[(r["variant"], r["harness"])].append(r)
 
-    cost_cols = " | ".join(f"비용 r={w}" for w in CFC_WEIGHTS)
+    cost_cols = " | ".join(f"cost r={w}" for w in CFC_WEIGHTS)
     head = (
-        "| 변형 | 하네스 | n | 행동 없음 | 수락률 [95% 구간] | 질문 | 모름 | 재작업 해석/오류 | "
-        f"{cost_cols} | 시간(s) |"
+        "| variant | harness | n | no action | acceptance [95% CI] | questions | unknown | rework interp/error | "
+        f"{cost_cols} | time(s) |"
     )
     print(head)
     print("|" + "---|" * (head.count("|") - 1))
     for (variant, harness), all_rows in sorted(groups.items()):
-        rs = all_rows  # 행동 없이 끝난 에피소드도 실패로 포함한다
+        rs = all_rows  # episodes with no action count as failures too
         if not rs:
             print(
                 f"| {variant} | {harness} | 0 | {len(all_rows)} | - | - | - | - |" + " - |" * len(CFC_WEIGHTS) + " - |"
@@ -100,15 +104,16 @@ def main():
         ]
         print("| " + " | ".join(cells) + " |")
     print(
-        "\n비용 = 수락이면 질문 + r × 재작업, 실패면 질문 예산 + r × 제출 예산.\n"
-        "옛 행의 재작업은 해석/오류를 나누지 않았다."
+        "\ncost = questions + r x reworks if accepted; question budget + r x submit budget if failed.\n"
+        "Reworks in old rows are not split into interp/error."
     )
 
     if task and task.get("n_interpretations"):
         b = guess_baseline(task["n_interpretations"], task["budget"]["submit"])
         print(
-            f"\n추측 기준선 (해석 {task['n_interpretations']}개, 제출 예산 {task['budget']['submit']}, 질문 0): "
-            f"수락 확률 {b['p_success']}, 수락 시 CFC {b['cfc_given_success']}"
+            f"\nGuessing baseline ({task['n_interpretations']} interpretations, "
+            f"submit budget {task['budget']['submit']}, 0 questions): "
+            f"acceptance probability {b['p_success']}, CFC if accepted {b['cfc_given_success']}"
         )
 
 

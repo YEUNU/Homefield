@@ -1,4 +1,4 @@
-"""제출물 채점. 답 SQL을 원본 DB 사본에서 실행해 정답 SQL 결과와 비교한다."""
+"""Grade a submission. Run the answer SQL on a copy of the source DB and compare with the gold SQL result."""
 
 import math
 import sqlite3
@@ -35,7 +35,9 @@ def same_rows(got: list[tuple], gold: list[tuple], ordered: bool = False, tol: f
 
 
 def check_sql_result(answer: Path, gold_db: Path, spec: dict) -> tuple[bool, str, str | None]:
-    """(정답 여부, 거절 종류, 결과 미리보기). 거절 종류: "" | "missing" | "sql_error" | "wrong_result"."""
+    """(correct or not, rejection kind, result preview).
+
+    Rejection kind: "" | "missing" | "sql_error" | "wrong_result"."""
     if not answer.exists():
         return False, "missing", None
     try:

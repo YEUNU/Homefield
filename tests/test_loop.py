@@ -1,4 +1,4 @@
-"""M0 루프 테스트. 모델은 대본대로 답하는 가짜 함수로 바꾼다 (네트워크 없음)."""
+"""M0 loop test. The model is replaced by a fake function that answers from a script (no network)."""
 
 import json
 
@@ -32,7 +32,7 @@ def test_runs_tool_then_stops_on_final_answer(tmp_path):
     assert result.final == "done" and result.stop == "final" and result.turns == 2
     tool_msg = result.messages[3]
     assert tool_msg["role"] == "tool" and tool_msg["tool_call_id"] == "c1" and tool_msg["content"].startswith("exit=0")
-    assert complete.seen[1] == ["system", "user", "assistant", "tool"]  # 도구 결과가 다음 호출에 들어간다
+    assert complete.seen[1] == ["system", "user", "assistant", "tool"]  # the tool result goes into the next call
 
 
 def test_stops_at_max_turns(tmp_path):
