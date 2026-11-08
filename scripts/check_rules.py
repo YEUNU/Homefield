@@ -18,6 +18,7 @@ DOC_STATUS = {"초안", "확정", "폐기"}
 ADR_STATUS = {"결정", "가정", "폐기", "대체됨"}
 UPPER_SNAKE = re.compile(r"^[A-Z][A-Z0-9_]*\.md$")
 KEBAB = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*\.md$")
+DATE = re.compile(r"\b20\d{2}-\d{2}(-\d{2})?\b")
 ADR_NAME = re.compile(r"^\d{4}-[a-z0-9]+(-[a-z0-9]+)*\.md$")
 
 
@@ -74,6 +75,10 @@ def check_public(files: list[str]) -> list[str]:
                 errs.append(f"{f}:{n}: 사설 IP 금지. 환경변수로 쓴다 (RULES §1.7)")
         if p.parent == Path("docs") and p.suffix == ".md" and p.name != "README.md":
             errs += check_doc(p, "배포", DOC_STATUS, UPPER_SNAKE)
+        if (p.parent == Path("docs") or f == "README.md") and p.suffix == ".md":
+            body = text.split("\n---", 1)[1] if text.startswith("---\n") else text
+            if DATE.search(body):
+                errs.append(f"{f}: 배포 문서 본문에 날짜를 쓰지 않는다. 최종 상태만 쓴다 (RULES §1.3)")
     return errs
 
 

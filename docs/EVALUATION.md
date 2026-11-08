@@ -75,11 +75,11 @@ python3 -m evalkit.report evals/results/<날짜>.jsonl --task tasks/smoke-revenu
 | | `bird-official` | BIRD-Interact 공식 기준선 | 과제 출처 벤치마크의 기준선 | 미구현 |
 
 뺀 것과 이유:
-- Aider (약 49k 스타): 파일 편집 중심이라 셸 규약과 맞지 않고, 2026-05 이후 커밋이 없다 (2차 자료).
+- Aider (약 49k 스타): 파일 편집 중심이라 셸 규약과 맞지 않고, 최근 커밋이 없다 (2차 자료).
 - Cline, Kilo Code: IDE 확장이 본체라 headless 비교에 맞지 않는다.
 - Gemini CLI 본체: 위 `qwen` 설명 참고.
 
-스타 수는 2026-08~09 기준 2차 자료이다 (morphllm.com, openalternative.co). 실제 수치는 각 저장소에서 확인한다.
+스타 수는 2차 자료(morphllm.com, openalternative.co)의 근삿값이다. 실제 수치는 각 저장소에서 확인한다.
 
 ## 7. 결과 필드 (`evals/results/<날짜>.jsonl`, 한 줄 = 에피소드 1개)
 | 필드 | 뜻 |
