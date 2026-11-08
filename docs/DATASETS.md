@@ -16,8 +16,8 @@ Status: **Downloaded** = in `data/raw/`. **On hold** = usable, but a condition b
 ### 1.1 Downloaded
 | Type | Dataset | Use | Data license | Source | Downloaded size | Gold answer | Ambiguity material |
 |---|---|---|---|---|---|---|---|
-| SQL | BIRD Mini-Dev | Resolve knowledge ambiguity | CC BY-SA 4.0 | HF `birdsql/bird_mini_dev` + original dev DB (`dev.zip`) | 342MB | Public SQL (500) | 365 `evidence` items (without them, the question is ambiguous) |
-| SQL | AmbiQT | Queries with two interpretations | MIT | GitHub `testzer0/AmbiQT` | 247MB (with DB) | 2 SQL queries, one for each interpretation | Column and table synonyms, joins, pre-aggregation |
+| SQL | BIRD dev | Resolve knowledge ambiguity | CC BY-SA 4.0 | `dev.zip` (dev set `dev.json`, 1,534 questions, and the dev DBs) + HF `birdsql/bird_mini_dev` | 342MB | Public SQL | 1,386 `evidence` items in `dev.json` (without them, the question is ambiguous). The Mini-Dev file states its output contracts inside the questions, so evidence removal leaves little ambiguity there |
+| SQL | AmbiQT | Queries with two interpretations | MIT | GitHub `testzer0/AmbiQT` | 247MB (with DB) | 2 SQL queries, one for each interpretation | Column and table synonyms, joins, pre-aggregation. The DBs are the original Spider DBs, so both interpretations give the same result: not usable for hidden-intent tasks |
 | Local file (CSV) | InfiAgent-DABench | CSV analysis | Apache-2.0 | HF `infiagent/DABench` | 61MB | Closed-format answer (dev 257) | `constraints` (without them, the question is ambiguous) |
 | Local file (Excel) | SpreadsheetBench verified 400 | Excel operations | CC BY-SA 4.0 (HF card) | HF `KAKA22/SpreadsheetBench` | 14MB | Gold Excel file | None |
 | Local file (mixed) | DABstep dev | Document rules + payment CSV | CC BY 4.0 | HF `adyen/DABstep` | 23MB | Dev 10 only | None |
@@ -64,7 +64,15 @@ python3 -I scripts/fetch_datasets.py tat-dqa      # one dataset only
 - Downloaded files are untrusted data. Do not run code in them (example: the `*.py` files of AmbiQT). Put the scripts that read them in `scripts/` and run them with `python3 -I`.
 
 ## 3. Rules to convert to the task format
-Convert every dataset to the evalkit task format (`docs/EVALUATION.md` §2) and put it in `tasks/<dataset>-<original ID>/`. Do not put original data in `tasks/`. The conversion script makes the tasks from `data/raw/`.
+Convert every dataset to the evalkit task format (`docs/EVALUATION.md` §2). `scripts/make_tasks.py` makes the tasks from `data/raw/` into `data/tasks/<dataset>-<original ID>-<condition>/` (excluded from git, because the tasks contain licensed data). Unpacked DBs go to `data/processed/`. `tasks/` holds only our own tasks.
+
+```bash
+python3 -I scripts/make_tasks.py bird --n 20 --seed 0        # BIRD dev, conditions O, N, D
+python3 -I scripts/make_tasks.py infiagent --n 10 --seed 0   # InfiAgent-DABench, conditions O, N, D
+```
+- Selection is random with a fixed seed. Every task passes a self-check (the gold answer is accepted) before the script writes it. The script writes the selection and the skipped items to `data/tasks/<dataset>-selection.json`.
+- BIRD: only `moderate` and `challenging` questions with evidence. 3 of the 11 dev DBs are evaluation-only (drawn with the seed, listed in the selection file). The script does not make tasks from them.
+- Conditions: `O` = request + facts, no questions. `N` = request only, no questions. `D` = request only, the customer simulator knows the facts.
 
 ### 3.1 Common fields
 | Task field | Meaning | Rule |
@@ -88,16 +96,16 @@ An anchor fact comes from the gold answer, so it is circular. Fix the aggregatio
 ### 3.3 Scoring types
 | Type | Comparison | Datasets that use it | evalkit implementation |
 |---|---|---|---|
-| `sql_result` | Result set of the answer SQL against the gold SQL (SQLite) | BIRD Mini-Dev, AmbiQT, own tasks | Yes |
-| `exact_answer` | Normalized string or number (with tolerance) | InfiAgent-DABench (`@key[value]` format), TAT-DQA (value + unit), DABstep | No |
+| `sql_result` | Result set of the answer SQL against the gold SQL (SQLite) | BIRD dev, own tasks | Yes |
+| `exact_answer` | `@key[value]` pairs: number within half a unit of the last gold decimal, other values after strip and lower case | InfiAgent-DABench. TAT-DQA (value + unit) and DABstep (plain answer) need an adapted format | Yes (`@key[value]` only) |
 | `sheet_cells` | Values in a specified cell range | SpreadsheetBench | No |
 | `kg_triples` | Precision and recall against the gold triples, number of ontology violations | Text2KGBench | No |
 
 ### 3.4 Rules for each dataset
 | Dataset | `request` | `sources` | `check` | `hidden.facts` | `n_interpretations` |
 |---|---|---|---|---|---|
-| BIRD Mini-Dev | `question` (without evidence) | `sqlite` (dev DB) | `sql_result`, gold `SQL` | Definition type: `evidence`. Anchor type: a coarse aggregate of the gold result | Approximated by the number of `evidence` sentences |
-| AmbiQT | `question` | `sqlite` (`db-content.zip`) | `sql_result`, hidden intent = `query1` or `query2` (fixed for each task) | Definition type: the synonym map (`extra_map`) as a business sentence. Anchor type: an aggregate value that separates the results of the two interpretations | 2 |
+| BIRD dev | `question` (without evidence) | `sqlite` (dev DB) | `sql_result`, gold `SQL` | Definition type: `evidence`. Anchor type: a coarse aggregate of the gold result | Approximated by the number of `evidence` sentences |
+| AmbiQT | Not converted (both interpretations give the same result on the Spider DBs) | | | | |
 | InfiAgent-DABench | `question` (without `constraints`), keep `format` | `csv` | `exact_answer` (`common_answers`) | Definition type: `constraints` | Approximated by the number of `constraints` conditions |
 | TAT-DQA | `question` | `pdf_pages` (page PNG + OCR JSON) | `exact_answer` (`answer` + `scale`) | Definition type: the unit and calculation range (`scale`, `derivation`) as a business sentence. A question without a unit has no ambiguity | 2 if there is a unit or formula, 1 if not |
 | SpreadsheetBench | The instruction text | `xlsx` | `sheet_cells` | None (no ambiguity annotation) | 1 |
@@ -107,7 +115,7 @@ An anchor fact comes from the gold answer, so it is circular. Fix the aggregatio
 
 ## 4. Priority
 1. `anchor-revenue` (own): the question strategy for the anchor type. It can run now.
-2. **BIRD Mini-Dev, AmbiQT**: you can convert them now with `sql_result` only. Make both the definition type and the anchor type. These are the main SQL datasets.
-3. **InfiAgent-DABench**: local CSV. Do it after you build the `exact_answer` scorer.
+2. **BIRD dev**: converted (`scripts/make_tasks.py bird`). Definition type now. The anchor type needs candidate interpretations, which BIRD does not annotate.
+3. **InfiAgent-DABench**: local CSV, converted (`scripts/make_tasks.py infiagent`, `exact_answer`).
 4. **TAT-DQA**: document and vision. `exact_answer` + page image input.
 5. SpreadsheetBench, Text2KGBench: Excel operations and ontology pack evaluation. Do them after you build the scorers.

@@ -16,7 +16,7 @@ The **interaction cost** to the first correct answer. The request is an ambiguou
   - Rework = a rejected submission. It is the same as showing a wrong result in a demo.
   - r is how many times more expensive one rework is than one question. The value is not known, so report all of r ∈ {1, 3, 10}.
 - Use CFC (the cost of accepted episodes only) as a reference only. It has no meaning when the acceptance rate is low.
-- Count rework in two classes: **interpretation error** (the result is different) and **execution error** (SQL error, no answer file).
+- Count rework in two classes: **interpretation error** (the result is different) and **execution error** (SQL error, no answer file, no `@key[value]` pair).
 - **No action**: an episode that ends with no question and no submission (early exit, a question in chat text instead of the protocol, and so on). Count it as a failure. Also show the number of such episodes separately for diagnosis.
 - Secondary metrics: number of questions, number of "I don't know" answers, run time.
 - **Guess baseline**: the acceptance probability and CFC when the agent guesses uniformly among the interpretations and asks no question. Put it in the result table.
@@ -29,9 +29,14 @@ The **interaction cost** to the first correct answer. The request is an ambiguou
 | Field | Meaning |
 |---|---|
 | `request` | The ambiguous customer request |
-| `db`, `db_sql` | The SQLite DB and the SQL that creates it |
-| `answer_file` | The file where the agent writes the answer SQL |
-| `check.gold_sql` | The gold SQL. evalkit compares the result sets (order ignored, numeric tolerance 1e-6) |
+| `db`, `db_sql` | The SQLite DB name in the work folder and the SQL that creates it |
+| `db_file` | Instead of `db_sql`: the path of an existing SQLite file |
+| `files` | Other source files (CSV, documents) copied to the work folder. No DB is needed |
+| `answer_file` | The file where the agent writes the answer |
+| `check.type` | `sql_result` or `exact_answer` |
+| `check.gold_sql` | `sql_result`: the gold SQL. evalkit compares the result sets (order ignored, numeric tolerance 1e-6) |
+| `check.answers` | `exact_answer`: gold `[key, value]` pairs. The answer file holds `@key[value]` pairs. Every gold key must be present. A number is equal if it is within half a unit of the last decimal of the gold value. Other values are compared after strip and lower case |
+| `condition` | Optional. `O` (facts in the request, no questions), `N` (no facts, no questions), `D` (facts known only to the customer) |
 | `hidden.facts` | Facts that only the customer simulator knows |
 | `budget.ask`, `budget.submit` | Question budget and submission budget |
 | `n_interpretations` | Number of interpretation combinations that change the result (for the guess baseline) |
@@ -39,7 +44,7 @@ The **interaction cost** to the first correct answer. The request is an ambiguou
 ## 3. Common protocol for the agent
 The protocol is the same in every harness that has a shell.
 
-- Answer: write one SQL statement in the answer file in the work folder.
+- Answer: write the answer in the answer file in the work folder (`sql_result`: one SQL statement; `exact_answer`: `@key[value]` pairs in the format that the request gives).
 - Question: `<bin>/ask_user "question"` prints the answer of the customer simulator.
 - Submission: `<bin>/submit_answer` prints `ACCEPTED` or `REJECTED`.
   - A rejection message gives only the information that a real customer gives. It does not give the remaining count or the content of an SQL error.

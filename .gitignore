@@ -1,6 +1,7 @@
 .env
 data/raw/
 data/processed/
+data/tasks/
 evals/results/
 __pycache__/
 .venv/
