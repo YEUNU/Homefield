@@ -17,10 +17,10 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from evalkit import llm
 from evalkit.adapters import ADAPTERS
 from evalkit.customer import make_customer
 from evalkit.episode import Episode
+from homefield import model as llm
 
 PROMPT = """You are a data analyst working for a customer.
 

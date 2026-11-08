@@ -5,6 +5,8 @@ import json
 import os
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent.parent
+
 
 def _home(ep, name: str) -> Path:
     p = ep.root / "home" / name
@@ -171,7 +173,16 @@ def goose(ep, prompt: str, model: str, env: dict):
     )
 
 
+def bare(ep, prompt: str, model: str, env: dict):
+    """우리 하네스 M0: 모델 독립 도구 호출 루프 (homefield)."""
+    return (
+        ["python3", "-m", "homefield", "-p", prompt, "--model", model, "--log", str(ep.root / "trajectory.jsonl")],
+        {"PYTHONPATH": str(ROOT)},
+    )
+
+
 ADAPTERS = {
+    "bare": bare,
     "claude": claude,
     "codex": codex,
     "opencode": opencode,
