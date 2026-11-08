@@ -64,7 +64,7 @@ def test_submit_reject_then_accept(tmp_path):
     finally:
         ep.stop()
     m = ep.metrics()
-    assert m["valid"] is True and m["accepted"] is True
+    assert m["acted"] is True and m["accepted"] is True
     assert m["n_submissions"] == 3
     assert m["n_rework"] == 2
     assert m["n_rework_error"] == 2 and m["n_rework_interp"] == 0  # 누락 1 + SQL 오류 1
@@ -87,10 +87,11 @@ def test_failure_cost_and_validity(tmp_path):
     assert ep.events[-1]["result"].startswith("[")  # 결과 미리보기
 
 
-def test_episode_without_any_action_is_invalid(tmp_path):
+def test_episode_without_any_action_is_flagged(tmp_path):
     ep = make_episode(tmp_path)
     ep.stop()
-    assert ep.metrics()["valid"] is False
+    m = ep.metrics()
+    assert m["acted"] is False and m["accepted"] is False  # 실패로 센다
 
 
 def test_agent_cannot_corrupt_gold_db(tmp_path):
@@ -139,4 +140,7 @@ def test_finished_episodes_for_resume(tmp_path):
         {"ts": "2026-01-01T10:00:00", "valid": False, "task_id": "t", "harness": "bare", "variant": "E1", "repeat": 2},
     ]
     f.write_text("".join(json.dumps(r) + "\n" for r in rows))
-    assert finished_episodes(f, "2026-01-01T09:30:00") == {("t", "bare", "E1", 0)}  # 이전 시각·무효는 다시 돈다
+    assert finished_episodes(f, "2026-01-01T09:30:00") == {
+        ("t", "bare", "E1", 0),
+        ("t", "bare", "E1", 2),
+    }  # 이전 시각만 다시 돈다

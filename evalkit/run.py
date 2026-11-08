@@ -130,13 +130,13 @@ def run_episode(
 
 
 def finished_episodes(results: Path, since: str) -> set[tuple]:
-    """결과 파일에서 since 이후 기록된 유효 에피소드의 (과제, 하네스, 변형, 반복) 집합."""
+    """결과 파일에서 since 이후 기록된 에피소드의 (과제, 하네스, 변형, 반복) 집합."""
     if not results.exists():
         return set()
     done = set()
     for line in results.read_text().splitlines():
         r = json.loads(line)
-        if r.get("ts", "") >= since and r.get("valid") and "harness" in r:
+        if r.get("ts", "") >= since and "harness" in r:
             done.add((r["task_id"], r["harness"], r["variant"], r["repeat"]))
     return done
 
@@ -150,7 +150,7 @@ def main():
     ap.add_argument("--variant", default="E0", help="쉼표로 여러 개: E0,E1")
     ap.add_argument("--repeat", type=int, default=1)
     ap.add_argument("--jobs", type=int, default=1, help="동시에 돌릴 에피소드 수")
-    ap.add_argument("--resume", default="", help="이 시각(ISO) 이후 결과 파일에 있는 유효 에피소드는 건너뛴다")
+    ap.add_argument("--resume", default="", help="이 시각(ISO) 이후 결과 파일에 있는 에피소드는 건너뛴다")
     args = ap.parse_args()
 
     runs_root = Path(os.environ.get("HF_RUNS_DIR", Path(tempfile.gettempdir()) / "homefield-runs"))
@@ -186,7 +186,7 @@ def main():
             with open(out, "a") as f:
                 f.write(json.dumps(row, ensure_ascii=False) + "\n")
             print(
-                f"r{rep} {task['id']} {v} {h:10s} valid={row['valid']!s:5s} accepted={row['accepted']!s:5s} "
+                f"r{rep} {task['id']} {v} {h:10s} acted={row['acted']!s:5s} accepted={row['accepted']!s:5s} "
                 f"q={row['n_questions']} unk={row['n_unknown']} sub={row['n_submissions']} "
                 f"rework={row['n_rework_interp']}/{row['n_rework_error']} {row['latency_s']}s {row['notes']}",
                 flush=True,

@@ -147,7 +147,8 @@ class Episode:
             str(r): (n_ask + r * n_rework) if accepted else (budget["ask"] + r * budget["submit"]) for r in CFC_WEIGHTS
         }
         return {
-            "valid": n_ask + len(subs) > 0,  # 질문도 제출도 없으면 무효 (하네스·인프라 실패)
+            # 질문도 제출도 없이 끝났는가 (조기 종료, 규약 대신 대화 글로 질문 등). 실패로 세고 진단용으로 따로 본다.
+            "acted": n_ask + len(subs) > 0,
             "accepted": accepted,
             "n_questions": n_ask,
             "n_unknown": sum(1 for e in self.events if e["kind"] == "ask" and e.get("unknown")),
