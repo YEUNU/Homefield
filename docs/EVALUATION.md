@@ -22,6 +22,9 @@ The **interaction cost** to the first correct answer. The request is an ambiguou
 - **Guess baseline**: the acceptance probability and CFC when the agent guesses uniformly among the interpretations and asks no question. Put it in the result table.
 - The default is 10 or more repeats for each cell (task × harness × variant).
 
+- **Anchor tasks** (`anchor_k` in `task.json`) also get diagnostics from the episode logs: candidate-set hit rate (submitted results that match the customer's number), duplicate submissions, first-submission gold rate, timeouts, and keyword counts of "unknown" answers and of customer answers that approve the agent's proposal.
+- **Chance level** of an anchor task = min(1, submit budget / k). It is the expected acceptance of uniform guessing among the k candidates left after the anchor. It is not an upper bound: a model's prior can push the acceptance above or below it.
+
 ## 2. Task format (`tasks/<id>/task.json`)
 | Field | Meaning |
 |---|---|

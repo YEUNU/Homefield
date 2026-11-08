@@ -146,9 +146,16 @@ def test_finished_episodes_for_resume(tmp_path):
     }  # only the earlier times run again
 
 
-def test_anchor_ceiling():
-    from evalkit.report import ceiling
+def test_anchor_interpretations_map_back():
+    import sqlite3
+    from pathlib import Path
 
-    assert ceiling({"anchor_k": 4, "budget": {"submit": 2}}) == 0.5
-    assert ceiling({"anchor_k": 1, "budget": {"submit": 2}}) == 1.0
-    assert ceiling({"budget": {"submit": 2}}) is None  # not an anchor task
+    from evalkit.anchor import GOLD, INTERPRETATIONS, result_index, top3_sql, totals
+
+    con = sqlite3.connect(":memory:")
+    con.executescript(Path("tasks/anchor-revenue/data.sql").read_text())
+    assert len(INTERPRETATIONS) == 16 and totals(con)[GOLD] == 1645.0
+    index = result_index(con)
+    assert len(index) == 16  # every interpretation has a distinct top-3 result
+    gold_rows = con.execute(top3_sql(GOLD)).fetchall()
+    assert index[tuple(sorted((n, round(v, 2)) for n, v in gold_rows))] == GOLD

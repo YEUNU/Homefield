@@ -11,10 +11,12 @@
 import argparse
 import json
 import math
+import sqlite3
 from collections import defaultdict
 from pathlib import Path
 from statistics import mean, stdev
 
+from evalkit.anchor import diagnostics, result_index, totals
 from evalkit.episode import CFC_WEIGHTS, guess_baseline
 
 # Old field name -> current name (compatible with results from before the rename)
@@ -36,14 +38,6 @@ def normalize(row: dict, budget: dict | None) -> dict:
     return row
 
 
-def ceiling(task: dict | None) -> float | None:
-    """Information ceiling of the acceptance rate for anchor tasks: after the anchor, k candidates remain,
-    the customer knows nothing more, and the agent has `submit` tries. Best case = min(1, submit / k)."""
-    if not task or not task.get("anchor_k"):
-        return None
-    return min(1.0, task["budget"]["submit"] / task["anchor_k"])
-
-
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
     if n == 0:
         return (float("nan"), float("nan"))
@@ -59,6 +53,38 @@ def mean_ci(xs: list[float]) -> str:
     if len(xs) < 2:
         return f"{xs[0]:.1f}"
     return f"{mean(xs):.1f}±{1.96 * stdev(xs) / math.sqrt(len(xs)):.1f}"
+
+
+def anchor_report(task: dict, task_dir: Path, groups: dict) -> None:
+    """Pre-registered diagnostics for anchor tasks (internal ROADMAP, decision rule D')."""
+    con = sqlite3.connect(":memory:")
+    con.executescript((task_dir / task["db_sql"]).read_text())
+    lo, hi = task["anchor_range"]
+    consistent = {i for i, v in totals(con).items() if lo <= v <= hi}
+    index = result_index(con)
+    chance = min(1.0, task["budget"]["submit"] / task["anchor_k"])
+    print(f"\nAnchor diagnostics (k={task['anchor_k']}, chance level of uniform guessing = {chance:.2f})")
+    head = (
+        "| variant | harness | candidate-set hit | duplicate episodes | first-submission gold | timeouts | "
+        "unknown (recount) | approval leaks |"
+    )
+    print(head)
+    print("|" + "---|" * (head.count("|") - 1))
+    for (variant, harness), rs in sorted(groups.items()):
+        ds = [diagnostics(Path(r["episode_dir"]), consistent, index) for r in rs if r.get("episode_dir")]
+        firsts = [d for d in ds if d["has_first"]]
+        cells = [
+            variant,
+            harness,
+            f"{sum(d['n_in_set'] for d in ds)}/{sum(d['n_mapped'] for d in ds)}",
+            str(sum(d["duplicate"] for d in ds)),
+            f"{sum(d['first_gold'] for d in firsts)}/{len(firsts)}",
+            str(sum(r.get("notes") == "timeout" for r in rs)),
+            str(sum(d["unknown"] for d in ds)),
+            str(sum(d["approvals"] for d in ds)),
+        ]
+        print("| " + " | ".join(cells) + " |")
+    print("Unknown and approval counts are keyword heuristics over the customer answers.")
 
 
 def main():
@@ -77,15 +103,13 @@ def main():
     if task:
         rows = [r for r in rows if r["task_id"] == task["id"]]
 
-    cap = ceiling(task)
     groups = defaultdict(list)
     for r in rows:
         groups[(r["variant"], r["harness"])].append(r)
 
     cost_cols = " | ".join(f"cost r={w}" for w in CFC_WEIGHTS)
     head = (
-        "| variant | harness | n | no action | acceptance [95% CI] | acc/ceiling | questions | unknown | "
-        "rework interp/error | "
+        "| variant | harness | n | no action | acceptance [95% CI] | questions | unknown | rework interp/error | "
         f"{cost_cols} | time(s) |"
     )
     print(head)
@@ -94,9 +118,7 @@ def main():
         rs = all_rows  # episodes with no action count as failures too
         if not rs:
             print(
-                f"| {variant} | {harness} | 0 | {len(all_rows)} | - | - | - | - | - |"
-                + " - |" * len(CFC_WEIGHTS)
-                + " - |"
+                f"| {variant} | {harness} | 0 | {len(all_rows)} | - | - | - | - |" + " - |" * len(CFC_WEIGHTS) + " - |"
             )
             continue
         k = sum(r["accepted"] for r in rs)
@@ -107,7 +129,6 @@ def main():
             str(len(rs)),
             str(sum(not r["acted"] for r in rs)),
             f"{k}/{len(rs)} [{lo:.2f}, {hi:.2f}]",
-            f"{k / len(rs) / cap:.2f}" if cap else "-",
             f"{mean(r['n_questions'] for r in rs):.1f}",
             f"{mean(r.get('n_unknown', 0) for r in rs):.1f}",
             f"{mean(r.get('n_rework_interp', r['n_rework']) for r in rs):.1f}/"
@@ -120,8 +141,8 @@ def main():
         "\ncost = questions + r x reworks if accepted; question budget + r x submit budget if failed.\n"
         "Reworks in old rows are not split into interp/error."
     )
-    if cap:
-        print(f"acc/ceiling = acceptance / ceiling. Ceiling for this task = min(1, submit budget / k) = {cap:.2f}.")
+    if task and task.get("anchor_range"):
+        anchor_report(task, args.task, groups)
 
     if task and task.get("n_interpretations"):
         b = guess_baseline(task["n_interpretations"], task["budget"]["submit"])
