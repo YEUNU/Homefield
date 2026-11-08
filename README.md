@@ -15,7 +15,7 @@ FDE(Forward Deployed Engineer) 작업 흐름을 위한 에이전트 하네스. �
 git config core.hooksPath .githooks
 cp .env.example .env        # OpenAI 호환 LLM 서버 주소와 키
 scripts/check_llm.sh        # 연결 확인
-uvx --python 3.12 pytest -q # 프로토콜 테스트
+scripts/ci.sh              # 로컬 CI (ruff, pytest, 규칙, gitleaks)
 python3 -m evalkit.run --task tasks/smoke-revenue --harness claude
 ```
 

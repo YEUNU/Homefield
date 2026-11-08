@@ -19,6 +19,6 @@
 
 ## 작업 규칙
 - **문서·코드·배포 규칙은 `docs/RULES.md`가 단일 원천이다.** 여기와 스킬은 그것을 가리키기만 한다.
-- 커밋 전: `uvx ruff format . && uvx ruff check . && uvx --python 3.12 pytest -q && python3 scripts/check_rules.py`
+- 커밋 전: `uvx ruff format .` 후 `scripts/ci.sh`. push 뒤 PR에는 `scripts/ci.sh --report`.
 - 내부 문서를 바꾼 뒤: `python3 scripts/check_rules.py --internal internal`
 - 관련 스킬: `karpathy-guidelines`(코드), `eval-first`(평가), `git-workflow`(배포), `decision-record`(ADR), `dataset-prep`, `local-llm`.

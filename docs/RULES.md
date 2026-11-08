@@ -121,7 +121,7 @@ audience: 배포 | 내부               # docs/ 는 배포, internal/ 은 내부
 - 범위 예: `core`, `policy`, `state`, `eval`, `evalkit`, `adapter`, `onto`, `p1`…`p5`, `skills`, `docs`, `rules`.
 
 ### 3.4 PR
-- CI 통과 (비밀 검사, 규칙 검사, 린트, 테스트).
+- 로컬 CI 통과: push 뒤 `scripts/ci.sh --report`로 커밋 상태 `local-ci`=success를 올린다. GitHub Actions는 쓰지 않는다 (§4.1).
 - PR 본문은 템플릿을 채운다. eval 결과 또는 "미검증".
 - 설계 결정이 있으면 `internal/decisions/`에 기록을 추가하고 PR에는 번호만 적는다 (내용은 비공개).
 
@@ -136,19 +136,28 @@ push, PR 생성, 태그, 릴리스, force-push, 기록 재작성, 저장소 설�
 ## 4. 강제 수단
 | 규칙 | 수단 | 위치 |
 |---|---|---|
-| 비밀·키 파일·`data/` 커밋 금지 | pre-commit hook, CI gitleaks | `.githooks/pre-commit`, `.github/workflows/ci.yml` |
-| 사설 IP(10/8, 172.16/12, 192.168/16) 금지 | pre-commit, CI | `scripts/check_rules.py` |
-| `internal/` 추적 금지 | `.gitignore`, CI | `scripts/check_rules.py` |
-| 문서 머리말·이름 규칙 | pre-commit, CI | `scripts/check_rules.py` |
+| 비밀·키 파일·`data/` 커밋 금지 | pre-commit hook, 로컬 CI gitleaks | `.githooks/pre-commit`, `scripts/ci.sh` |
+| 사설 IP(10/8, 172.16/12, 192.168/16) 금지 | pre-commit, 로컬 CI | `scripts/check_rules.py` |
+| `internal/` 추적 금지 | `.gitignore`, 로컬 CI | `scripts/check_rules.py` |
+| 문서 머리말·이름 규칙 | pre-commit, 로컬 CI | `scripts/check_rules.py` |
 | 커밋 메시지 형식 | commit-msg hook | `.githooks/commit-msg` |
-| 린트·서식 | CI | `ruff check`, `ruff format --check` |
-| 테스트 | CI | `pytest` |
+| 린트·서식 | 로컬 CI | `ruff check`, `ruff format --check` |
+| 테스트 | 로컬 CI | `pytest` |
+| push 전 전체 검사 | pre-push hook | `.githooks/pre-push` → `scripts/ci.sh` |
 | `main` 직접 push 금지 | GitHub 브랜치 보호 | **미설정** (저장소 설정 변경은 사람 승인 필요) |
 | 문체·근거 표기 | 사람 리뷰 | - |
+
+### 4.1 로컬 CI
+- CI는 GitHub Actions가 아니라 개발자 PC에서 돈다 (`scripts/ci.sh`). 검사: ruff check, ruff format, pytest, 규칙 검사, gitleaks.
+- `pre-push` hook이 push 전에 자동으로 돌린다. 실패하면 push가 막힌다.
+- PR에 결과를 보이려면 push 뒤 `scripts/ci.sh --report`를 돌린다. GitHub 커밋 상태 `local-ci`가 기록된다.
+- 자체 호스팅 GitHub 러너는 쓰지 않는다. 공개 저장소에서는 외부 PR 코드가 이 PC에서 실행될 위험이 있다.
+- 필요 도구: `uv`(uvx), `gitleaks`(Homebrew), `gh`(로그인 상태).
 
 ## 5. 처음 설정
 ```bash
 git config core.hooksPath .githooks
+brew install gitleaks    # 로컬 CI용
 git clone https://github.com/YEUNU/Homefield-internal.git internal   # 권한이 있을 때
 cp .env.example .env
 ```
