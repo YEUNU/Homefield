@@ -13,7 +13,9 @@ import signal
 import sqlite3
 import subprocess
 import tempfile
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
@@ -51,6 +53,17 @@ VARIANTS = {
    If the customer cannot answer a definition question, ask for a number they already know (for example a total
    from their report) and keep only the interpretations whose result matches that number. Do not guess.
    For any interpretation you did not confirm, state your assumption in a SQL comment in the answer file.""",
+    # E3 = 앵커 전략을 절차로 명시한 가장 강한 프롬프트 대조군. 이것으로 재현되면 앵커 메커니즘 주장을 접는다.
+    "E3": """
+5. Follow this procedure exactly:
+   a) List every decision in the request that changes the result, with its options, and the candidate queries.
+   b) Ask the customer ONE question for a number they already know from their existing reports that would
+      distinguish the candidates (for example, the total for the period). Do not ask about technical definitions.
+   c) Compute that number with SQL for every candidate interpretation.
+   d) Keep only the candidates whose number matches the customer's number (allow small differences).
+      If several remain, choose the most likely one.
+   e) Write the answer file and submit.
+   State any unconfirmed assumption in a SQL comment in the answer file.""",
 }
 
 
@@ -66,7 +79,7 @@ def build_db(task_dir: Path, task: dict, out: Path) -> Path:
 def run_episode(
     task_dir: Path, task: dict, harness: str, variant: str, rep: int, model: str, timeout: int, runs: Path, src_db: Path
 ) -> dict:
-    root = runs / f"{task['id']}__{harness}__{variant}__r{rep}"
+    root = runs / task["id"] / f"{harness}__{variant}__r{rep}"
     ep = Episode(task, src_db, root, simulate=make_customer(task))
     ep.start()
     prompt = PROMPT.format(
@@ -118,37 +131,52 @@ def run_episode(
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--task", required=True)
+    ap.add_argument("--task", required=True, help="쉼표로 여러 개")
     ap.add_argument("--harness", default=",".join(ADAPTERS))
     ap.add_argument("--model", default=llm.DEFAULT_MODEL)
     ap.add_argument("--timeout", type=int, default=900)
     ap.add_argument("--variant", default="E0", help="쉼표로 여러 개: E0,E1")
     ap.add_argument("--repeat", type=int, default=1)
+    ap.add_argument("--jobs", type=int, default=1, help="동시에 돌릴 에피소드 수")
     args = ap.parse_args()
 
-    task_dir = Path(args.task)
-    task = json.loads((task_dir / "task.json").read_text())
     runs_root = Path(os.environ.get("HF_RUNS_DIR", Path(tempfile.gettempdir()) / "homefield-runs"))
     runs = runs_root / datetime.now().strftime("%Y%m%d-%H%M%S")
-    runs.mkdir(parents=True)
-    src_db = build_db(task_dir, task, runs)
+    tasks = []
+    for t in args.task.split(","):
+        task_dir = Path(t)
+        task = json.loads((task_dir / "task.json").read_text())
+        (runs / task["id"]).mkdir(parents=True)
+        tasks.append((task_dir, task, build_db(task_dir, task, runs / task["id"])))
     results = llm.ROOT / "evals" / "results"
     results.mkdir(parents=True, exist_ok=True)
     out = results / f"{datetime.now():%Y-%m-%d}.jsonl"
 
     # 반복을 바깥 고리로 둔다: 서버 상태가 시간에 따라 바뀌어도 하네스·변형에 고르게 퍼진다.
-    for rep in range(args.repeat):
-        for v in args.variant.split(","):
-            for h in args.harness.split(","):
-                row = run_episode(task_dir, task, h, v, rep, args.model, args.timeout, runs, src_db)
-                with open(out, "a") as f:
-                    f.write(json.dumps(row, ensure_ascii=False) + "\n")
-                print(
-                    f"r{rep} {v} {h:10s} accepted={row['accepted']!s:5s} q={row['n_questions']} "
-                    f"unk={row['n_unknown']} sub={row['n_submissions']} rework={row['n_rework']} "
-                    f"cfc={row['cfc']} {row['latency_s']}s {row['notes']}",
-                    flush=True,
-                )
+    jobs = [
+        (task_dir, task, src_db, h, v, rep)
+        for rep in range(args.repeat)
+        for task_dir, task, src_db in tasks
+        for v in args.variant.split(",")
+        for h in args.harness.split(",")
+    ]
+    lock = threading.Lock()
+
+    def one(job):
+        task_dir, task, src_db, h, v, rep = job
+        row = run_episode(task_dir, task, h, v, rep, args.model, args.timeout, runs, src_db)
+        with lock:
+            with open(out, "a") as f:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+            print(
+                f"r{rep} {task['id']} {v} {h:10s} valid={row['valid']!s:5s} accepted={row['accepted']!s:5s} "
+                f"q={row['n_questions']} unk={row['n_unknown']} sub={row['n_submissions']} "
+                f"rework={row['n_rework_interp']}/{row['n_rework_error']} {row['latency_s']}s {row['notes']}",
+                flush=True,
+            )
+
+    with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+        list(pool.map(one, jobs))
     print(f"results: {out}\nepisodes: {runs}")
 
 

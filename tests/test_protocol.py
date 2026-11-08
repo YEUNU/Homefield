@@ -57,16 +57,40 @@ def test_submit_reject_then_accept(tmp_path):
         reply = call(ep.bin / "submit_answer")
         # 실제 고객이 주지 않는 정보(남은 횟수, 오류 내용)는 새지 않아야 한다
         assert reply.startswith("REJECTED") and "left" not in reply and "nope" not in reply
-        assert ep.events[-1]["detail"].startswith("sql error")  # 사유는 로그에만
+        last = ep.events[-1]  # 사유·제출물은 로그에만
+        assert last["error_kind"] == "sql_error" and last["answer"] == "SELECT nope FROM t"
         (ep.work / "answer.sql").write_text("SELECT name, v FROM t WHERE v >= 2")
         assert call(ep.bin / "submit_answer") == "ACCEPTED"
     finally:
         ep.stop()
     m = ep.metrics()
-    assert m["accepted"] is True
+    assert m["valid"] is True and m["accepted"] is True
     assert m["n_submissions"] == 3
     assert m["n_rework"] == 2
+    assert m["n_rework_error"] == 2 and m["n_rework_interp"] == 0  # 누락 1 + SQL 오류 1
     assert m["cfc"] == {"1": 2, "3": 6, "10": 20}  # 질문 0 + r × 재작업 2
+    assert m["cost"] == m["cfc"]  # 수락되면 비용 = CFC
+
+
+def test_failure_cost_and_validity(tmp_path):
+    ep = make_episode(tmp_path)
+    try:
+        (ep.work / "answer.sql").write_text("SELECT name, v FROM t")  # 해석 오류 (결과가 다름)
+        for _ in range(3):
+            call(ep.bin / "submit_answer")
+    finally:
+        ep.stop()
+    m = ep.metrics()
+    assert m["accepted"] is False and m["cfc"] is None
+    assert m["n_rework_interp"] == 3
+    assert m["cost"] == {"1": 2 + 3, "3": 2 + 9, "10": 2 + 30}  # 질문 예산 2 + r × 제출 예산 3
+    assert ep.events[-1]["result"].startswith("[")  # 결과 미리보기
+
+
+def test_episode_without_any_action_is_invalid(tmp_path):
+    ep = make_episode(tmp_path)
+    ep.stop()
+    assert ep.metrics()["valid"] is False
 
 
 def test_agent_cannot_corrupt_gold_db(tmp_path):

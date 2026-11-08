@@ -7,6 +7,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
+# 재현성을 위해 버전을 고정한다. goose는 Homebrew 설치본을 쓴다 (실행 시 버전을 확인해 기록).
+VERSIONS = {
+    "claude": "2.1.319",
+    "codex": "0.167.0",
+    "opencode": "1.19.5",
+    "qwen": "0.27.0",
+    "openhands": "1.16.0",
+    "mini": "2.4.6",
+    "goose": "1.57.0",
+}
+
 
 def _home(ep, name: str) -> Path:
     p = ep.root / "home" / name
@@ -19,7 +30,7 @@ def claude(ep, prompt: str, model: str, env: dict):
         [
             "npx",
             "-y",
-            "@anthropic-ai/claude-code@latest",
+            f"@anthropic-ai/claude-code@{VERSIONS['claude']}",
             "-p",
             prompt,
             "--allowedTools",
@@ -51,7 +62,7 @@ def codex(ep, prompt: str, model: str, env: dict):
         [
             "npx",
             "-y",
-            "@openai/codex@latest",
+            f"@openai/codex@{VERSIONS['codex']}",
             "exec",
             "--skip-git-repo-check",
             "-s",
@@ -81,7 +92,10 @@ def opencode(ep, prompt: str, model: str, env: dict):
     }
     (home / "opencode.json").write_text(json.dumps(cfg))
     xdg = {f"XDG_{k}_HOME": str(home / k.lower()) for k in ("CONFIG", "DATA", "CACHE", "STATE")}
-    return (["npx", "-y", "opencode-ai@latest", "run", prompt], {"OPENCODE_CONFIG": str(home / "opencode.json"), **xdg})
+    return (
+        ["npx", "-y", f"opencode-ai@{VERSIONS['opencode']}", "run", prompt],
+        {"OPENCODE_CONFIG": str(home / "opencode.json"), **xdg},
+    )
 
 
 def mini(ep, prompt: str, model: str, env: dict):
@@ -91,7 +105,7 @@ def mini(ep, prompt: str, model: str, env: dict):
             "--python",
             "3.12",
             "--from",
-            "mini-swe-agent",
+            f"mini-swe-agent=={VERSIONS['mini']}",
             "--with",
             "mcp",
             "mini",
@@ -122,6 +136,8 @@ def openhands(ep, prompt: str, model: str, env: dict):
             "uvx",
             "--python",
             "3.12",
+            "--from",
+            f"openhands=={VERSIONS['openhands']}",
             "openhands",
             "--headless",
             "--yolo",
@@ -143,7 +159,7 @@ def openhands(ep, prompt: str, model: str, env: dict):
 
 def qwen(ep, prompt: str, model: str, env: dict):
     return (
-        ["npx", "-y", "@qwen-code/qwen-code@latest", "-p", prompt, "--yolo", "--auth-type", "openai"],
+        ["npx", "-y", f"@qwen-code/qwen-code@{VERSIONS['qwen']}", "-p", prompt, "--yolo", "--auth-type", "openai"],
         {
             "HOME": str(_home(ep, "qwen")),
             "npm_config_cache": os.environ.get("npm_config_cache", str(Path.home() / ".npm")),
