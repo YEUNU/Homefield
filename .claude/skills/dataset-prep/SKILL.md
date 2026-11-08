@@ -1,6 +1,6 @@
 ---
 name: dataset-prep
-description: Download, verify, and load a benchmark dataset for harness evaluation (Wide World Importers, BIRD-Interact-Lite, Spider 2.0-Snow/DBT, BLINKG, SemTab, DABstep, KramaBench, BPI Challenge 2019, Ambig-DS). Use when fetching or preparing any dataset listed in docs/DATASETS.md.
+description: Download, verify, and convert evaluation datasets across SQL, local files, and documents/vision (BIRD Mini-Dev, AmbiQT, InfiAgent-DABench, SpreadsheetBench, DABstep, BLADE, TAT-DQA, Text2KGBench, and held candidates). Use when fetching a dataset, checking its license, or converting it into evalkit tasks per docs/DATASETS.md.
 ---
 
 # Dataset Prep
@@ -16,7 +16,7 @@ description: Download, verify, and load a benchmark dataset for harness evaluati
 6. **스모크 테스트**: 과제 3개를 로컬 LLM으로 돌려 형식이 맞는지 확인한다.
 
 ## 데이터셋별 메모
-- BIRD-Interact: Lite(300과제)부터. 사용자 시뮬레이터를 그대로 쓴다. c-Interact와 a-Interact 결과를 따로 기록한다.
+- BIRD-Interact 계열: 정답이 메일 요청 전용이라 제외. 대신 BIRD Mini-Dev(evidence 제거로 모호성 생성)와 AmbiQT를 쓴다.
 - Spider 2.0: Snow, DBT만(무료). 실패를 스키마 연결 오류/기타로 분류한다.
 - KramaBench: 논문은 CC BY-NC-SA. 데이터 라이선스를 따로 확인한다.
 - BPI 2019: 이벤트 로그(XES/CSV). 프로세스 케이스 251,734개이므로 샘플링 규칙을 MANIFEST에 적는다.
