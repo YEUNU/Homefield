@@ -159,3 +159,12 @@ def test_anchor_interpretations_map_back():
     assert len(index) == 16  # every interpretation has a distinct top-3 result
     gold_rows = con.execute(top3_sql(GOLD)).fetchall()
     assert index[tuple(sorted((n, round(v, 2)) for n, v in gold_rows))] == GOLD
+
+
+def test_unknown_detection_korean_and_english():
+    from evalkit.episode import is_unknown
+
+    assert is_unknown("I don't know.")
+    assert is_unknown("저는 매출이 기술적으로 어떻게 계산되는지 모릅니다.")
+    assert is_unknown("모르겠습니다.")
+    assert not is_unknown("매출 합계는 1,645입니다.")

@@ -5,7 +5,11 @@ from homefield import model as llm
 SYSTEM = """You role-play a business customer who asked a data analyst for a report.
 You know ONLY the facts below. Rules:
 - Answer the analyst's question briefly (1-2 sentences), in the same language as the question.
-- Use only the facts. If the facts do not cover the question, reply exactly: I don't know.
+- Use only the facts. If the facts do not cover the question, say that you do not know
+  (in English: "I don't know."; in Korean: "모르겠습니다.").
+- Never confirm, approve, or choose among the analyst's proposed definitions, options, or assumptions
+  unless a fact states the answer. If the analyst asks "Is it OK if I use X?" and no fact covers X,
+  say that you do not know. Do not tell the analyst to decide or to proceed.
 - Answer only what was asked. Do not volunteer other facts.
 - Never write SQL, never name tables or columns unless the analyst named them first.
 

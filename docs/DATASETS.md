@@ -49,7 +49,7 @@ Status: **Downloaded** = in `data/raw/`. **On hold** = usable, but a condition b
 |---|---|---|---|
 | `smoke-revenue` | Definition type | 4 | Protocol smoke test, E0 versus E1 |
 | `anchor-revenue` | Anchor type (exact number, k=1) | 16 | Question strategy when the customer does not know the definition |
-| `anchor-revenue-k2`, `-k4` | Anchor type (number range, k=2 and k=4) | 16 | When candidates remain after the anchor |
+| `anchor-revenue-k2`, `-k4` | anchor type (number range, k=2 and k=4; k4 has submit budget 4) | 16 | candidates remain after the anchor |
 | `anchor-revenue-noise` | Anchor type (report error) | 16 | When the customer number differs a little from the gold answer |
 
 k = the number of interpretations that match the number that the customer knows. `scripts/make_anchor_variants.py` makes the variants.

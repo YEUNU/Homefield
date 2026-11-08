@@ -11,6 +11,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+from evalkit.episode import UNKNOWN_MARKS
+
 DECISIONS = {
     "tax": ["excl", "incl"],
     "cancel": ["exclude", "include"],
@@ -20,8 +22,7 @@ DECISIONS = {
 GOLD = ("excl", "exclude", "subtract", "order_date")
 INTERPRETATIONS = list(itertools.product(*DECISIONS.values()))
 
-# Heuristics over customer-simulator answers (Korean or English).
-UNKNOWN_MARKS = ("모르", "모릅", "don't know", "do not know")
+# Heuristic over customer-simulator answers (Korean or English).
 APPROVAL_MARKS = ("진행하셔도", "계산해 주세요", "그렇게 하세요", "go ahead", "proceed with")
 
 
