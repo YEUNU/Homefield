@@ -9,6 +9,7 @@
     "gold_sql": "SELECT c.name, SUM(o.total_excl_tax) FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.status = 'paid' AND o.order_date BETWEEN '2026-10-01' AND '2026-10-31' GROUP BY c.id ORDER BY 2 DESC LIMIT 3"
   },
   "hidden": {
+    "fact_kind": "definition",
     "facts": [
       "매출은 세전 금액이다 (부가세를 빼고 본다).",
       "취소된 주문은 매출에 넣지 않는다.",
