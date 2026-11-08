@@ -1,7 +1,7 @@
 # 비교 하네스 연결 기록
 
 - 확인일: 2026-11-08
-- 모델: `google/gemma-4-31B-it` (로컬 서버 `http://<LOCAL_LLM_HOST>`)
+- 모델: `google/gemma-4-31B-it` (로컬 OpenAI 호환 서버)
 - 시험 과제: 파일 3개 폴더에서 "셸로 파일 목록을 보고 `COUNT=<개수>` 한 줄로 답하라". 도구 호출이 실제로 돌아야 풀린다.
 - 모든 설정은 사용자 기존 설정과 분리했다 (설정 디렉터리 환경변수로 격리).
 
@@ -25,25 +25,25 @@
 ## 설정 요약 (키는 `.env`의 `LOCAL_LLM_API_KEY`)
 ```bash
 # H4 Claude Code
-CLAUDE_CONFIG_DIR=<격리 폴더> ANTHROPIC_BASE_URL=http://<LOCAL_LLM_HOST> \
+CLAUDE_CONFIG_DIR=<격리 폴더> ANTHROPIC_BASE_URL=$LOCAL_LLM_HOST \
 ANTHROPIC_AUTH_TOKEN=$LOCAL_LLM_API_KEY ANTHROPIC_MODEL=google/gemma-4-31B-it \
 ANTHROPIC_SMALL_FAST_MODEL=google/gemma-4-31B-it ANTHROPIC_DEFAULT_HAIKU_MODEL=google/gemma-4-31B-it \
 npx -y @anthropic-ai/claude-code -p "<과제>" --allowedTools "Bash(ls*)"
 
 # H3a Codex CLI: $CODEX_HOME/config.toml
 #   model = "google/gemma-4-31B-it"; model_provider = "local"
-#   [model_providers.local] base_url = "http://<LOCAL_LLM_HOST>/v1"; env_key = "LOCAL_LLM_API_KEY"; wire_api = "responses"
+#   [model_providers.local] base_url = "$LOCAL_LLM_BASE_URL"; env_key = "LOCAL_LLM_API_KEY"; wire_api = "responses"
 CODEX_HOME=<격리 폴더> npx -y @openai/codex exec --skip-git-repo-check -s workspace-write "<과제>"
 
 # H3b OpenCode: 작업 폴더의 opencode.json 에 openai-compatible 공급자 정의
 XDG_CONFIG_HOME=<격리> XDG_DATA_HOME=<격리> npx -y opencode-ai run "<과제>"
 
 # H1 mini-swe-agent
-OPENAI_API_BASE=http://<LOCAL_LLM_HOST>/v1 OPENAI_API_KEY=$LOCAL_LLM_API_KEY MSWEA_COST_TRACKING=ignore_errors \
+OPENAI_API_BASE=$LOCAL_LLM_BASE_URL OPENAI_API_KEY=$LOCAL_LLM_API_KEY MSWEA_COST_TRACKING=ignore_errors \
 uvx --python 3.12 --from mini-swe-agent --with mcp mini -m openai/google/gemma-4-31B-it -t "<과제>" -y -l 0 --exit-immediately
 
 # H2 OpenHands
-LLM_MODEL=openai/google/gemma-4-31B-it LLM_BASE_URL=http://<LOCAL_LLM_HOST>/v1 LLM_API_KEY=$LOCAL_LLM_API_KEY \
+LLM_MODEL=openai/google/gemma-4-31B-it LLM_BASE_URL=$LOCAL_LLM_BASE_URL LLM_API_KEY=$LOCAL_LLM_API_KEY \
 uvx --python 3.12 openhands --headless --yolo --override-with-envs --exit-without-confirmation -t "<과제>"
 ```
 
@@ -53,7 +53,7 @@ uvx --python 3.12 openhands --headless --yolo --override-with-envs --exit-withou
 
 ## 공통 규약 (evalkit)
 - 답 제출: 작업 폴더의 답 파일. 고객 질문: `<bin>/ask_user "질문"`. 제출: `<bin>/submit_answer`.
-- 다섯 하네스 모두 이 규약으로 스모크 과제를 완료했다. 결과는 `docs/DIFFERENTIATION.md` §5.
+- 다섯 하네스 모두 이 규약으로 스모크 과제를 완료했다. 결과는 `docs/EVALUATION.md`.
 - 실행: `python3 -m evalkit.run --task tasks/smoke-revenue`
 
 ## 남은 확인

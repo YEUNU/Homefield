@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 [ -f .env ] && { set -a; . ./.env; set +a; }
-: "${LOCAL_LLM_BASE_URL:=http://<LOCAL_LLM_HOST>/v1}"
+: "${LOCAL_LLM_BASE_URL:?LOCAL_LLM_BASE_URL 없음. .env에 넣는다}"
 if [ -z "${LOCAL_LLM_API_KEY:-}" ]; then
   echo "LOCAL_LLM_API_KEY 없음. .env.example을 .env로 복사하고 키를 넣는다." >&2; exit 1
 fi

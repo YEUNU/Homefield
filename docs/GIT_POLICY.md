@@ -11,7 +11,7 @@
 ## 2. 브랜치
 - `main`: 항상 동작하는 상태. 직접 push 금지. PR로만 병합한다.
 - 작업 브랜치: `<유형>/<짧은-설명>`. 유형은 `feat`, `fix`, `eval`, `docs`, `chore`, `exp`.
-  - `exp/*`: 실험용. 병합하지 않아도 된다. 결과는 `docs/decisions/`에 남긴다.
+  - `exp/*`: 실험용. 병합하지 않아도 된다. 결과는 `internal/decisions/`에 남긴다.
 - 병합 방식: squash merge. 병합 후 브랜치를 지운다.
 
 ## 3. 커밋 메시지
@@ -23,7 +23,7 @@ Conventional Commits를 쓴다: `<유형>(<범위>): <요약>`.
 ## 4. PR 조건
 - CI 통과 (비밀 검사 + 테스트).
 - 하네스 동작을 바꾸면 eval 결과를 PR 본문에 붙인다. 없으면 "미검증" 라벨을 단다.
-- 설계 결정을 포함하면 `docs/decisions/`에 기록을 추가한다.
+- 설계 결정을 포함하면 `internal/decisions/`에 기록을 추가한다.
 
 ## 5. 릴리스·배포
 - 버전: SemVer `vMAJOR.MINOR.PATCH`. 1.0 전에는 MINOR 증가가 호환 깨짐을 뜻할 수 있다.

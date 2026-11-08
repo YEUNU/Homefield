@@ -1,14 +1,14 @@
 ---
 name: local-llm
-description: Call the on-prem LLM server at <LOCAL_LLM_HOST> (OpenAI-compatible /v1, chat, embeddings, and the /v1/systemone decision-model endpoint). Use when writing harness code that calls a model, running evals or smoke tests, choosing a model ID, or when the user mentions the local LLM / 로컬 LLM / 온프레미스 모델.
+description: Call the on-prem LLM server configured in LOCAL_LLM_BASE_URL (OpenAI-compatible /v1, chat, embeddings, and the /v1/systemone decision-model endpoint). Use when writing harness code that calls a model, running evals or smoke tests, choosing a model ID, or when the user mentions the local LLM / 로컬 LLM / 온프레미스 모델.
 ---
 
 # Local LLM
 
-상세 문서: `docs/LOCAL_LLM.md`.
+상세 문서: `internal/LOCAL_LLM.md`.
 
 ## 설정
-- `LOCAL_LLM_BASE_URL=http://<LOCAL_LLM_HOST>/v1`
+- `LOCAL_LLM_BASE_URL`: `.env`에서 읽는다 (서버 주소는 내부 문서 `internal/LOCAL_LLM.md`)
 - `LOCAL_LLM_API_KEY`는 `.env`에서 읽는다. 키 값을 출력하거나 커밋하지 않는다.
 - 키가 없으면 사용자에게 `.env`에 넣어 달라고 요청한다. 직접 만들거나 추측하지 않는다.
 

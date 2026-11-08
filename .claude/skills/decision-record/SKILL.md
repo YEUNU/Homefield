@@ -1,11 +1,11 @@
 ---
 name: decision-record
-description: Record a design decision or an unconfirmed assumption for the FDE harness as a short ADR in docs/decisions/. Use when the user and Claude settle a design choice, reject an alternative, or proceed on an assumption that was not confirmed.
+description: Record a design decision or an unconfirmed assumption for the FDE harness as a short ADR in internal/decisions/. Use when the user and Claude settle a design choice, reject an alternative, or proceed on an assumption that was not confirmed.
 ---
 
 # Decision Record
 
-결정과 가정을 `docs/decisions/NNNN-<slug>.md`로 남긴다. 번호는 기존 최대값 + 1이다.
+결정과 가정을 `internal/decisions/NNNN-<slug>.md`로 남긴다. 번호는 기존 최대값 + 1이다.
 
 ## 형식
 ```markdown
