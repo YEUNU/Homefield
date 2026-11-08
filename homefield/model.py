@@ -25,18 +25,19 @@ def complete(
     messages: list[dict],
     tools: list[dict] | None = None,
     model: str = DEFAULT_MODEL,
-    max_tokens: int = 2048,
-    temperature: float = 0.0,
+    max_tokens: int = 8192,
+    temperature: float | None = None,
+    thinking: bool | None = None,
 ) -> dict:
-    """assistant 메시지 하나를 돌려준다: {"role", "content", "tool_calls"(있으면)}."""
+    """assistant 메시지 하나를 돌려준다: {"role", "content", "tool_calls"(있으면)}.
+    temperature·thinking이 None이면 서버 기본값을 쓴다 (비교 하네스들과 같은 조건).
+    thinking 모델은 생각에 토큰을 쓰므로 max_tokens를 넉넉히 둔다."""
     env = load_env()
-    body = {
-        "model": model,
-        "messages": messages,
-        "max_tokens": max_tokens,
-        "temperature": temperature,
-        "chat_template_kwargs": {"enable_thinking": False},
-    }
+    body = {"model": model, "messages": messages, "max_tokens": max_tokens}
+    if temperature is not None:
+        body["temperature"] = temperature
+    if thinking is not None:
+        body["chat_template_kwargs"] = {"enable_thinking": thinking}
     if tools:
         body["tools"] = tools
     req = urllib.request.Request(
@@ -55,6 +56,6 @@ def complete(
     return out
 
 
-def chat(messages: list[dict], model: str = DEFAULT_MODEL, max_tokens: int = 512) -> str:
-    """도구 없이 텍스트만 받는다."""
-    return complete(messages, model=model, max_tokens=max_tokens)["content"] or ""
+def chat(messages: list[dict], model: str = DEFAULT_MODEL, max_tokens: int = 512, **sampling) -> str:
+    """도구 없이 텍스트만 받는다. sampling: temperature, thinking."""
+    return complete(messages, model=model, max_tokens=max_tokens, **sampling)["content"] or ""

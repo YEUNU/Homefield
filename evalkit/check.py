@@ -34,12 +34,14 @@ def same_rows(got: list[tuple], gold: list[tuple], ordered: bool = False, tol: f
     return True
 
 
-def check_sql_result(answer: Path, gold_db: Path, spec: dict) -> tuple[bool, str]:
+def check_sql_result(answer: Path, gold_db: Path, spec: dict) -> tuple[bool, str, str | None]:
+    """(정답 여부, 거절 종류, 결과 미리보기). 거절 종류: "" | "missing" | "sql_error" | "wrong_result"."""
     if not answer.exists():
-        return False, f"answer file missing: {answer.name}"
+        return False, "missing", None
     try:
         got = run_sql(gold_db, answer.read_text())
     except sqlite3.Error as e:
-        return False, f"sql error: {e}"
+        return False, "sql_error", str(e)
     gold = run_sql(gold_db, spec["gold_sql"])
-    return same_rows(got, gold, spec.get("ordered", False)), ""
+    ok = same_rows(got, gold, spec.get("ordered", False))
+    return ok, "" if ok else "wrong_result", repr(got[:10])

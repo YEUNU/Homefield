@@ -18,6 +18,7 @@ def make_customer(task: dict, model: str = llm.DEFAULT_MODEL):
 
     def simulate(question: str) -> str:
         messages = [{"role": "system", "content": system}, {"role": "user", "content": question}]
-        return llm.chat(messages, model=model).strip()
+        # 시뮬레이터는 같은 질문에 같은 답을 하도록 고정한다 (평가 대상이 아니다).
+        return llm.chat(messages, model=model, temperature=0.0, thinking=False).strip()
 
     return simulate

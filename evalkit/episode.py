@@ -125,8 +125,11 @@ class Episode:
                 return "ACCEPTED (already). Stop now."
             if self._count("submit") >= self.task["budget"]["submit"]:
                 return "BUDGET_EXHAUSTED: no more submissions. Stop now."
-            ok, detail = check_sql_result(self.work / self.task["answer_file"], self.gold_db, self.task["check"])
-            self._log(kind="submit", ok=ok, detail=detail)  # 상세 사유는 로그에만 남긴다
+            answer = self.work / self.task["answer_file"]
+            ok, error_kind, preview = check_sql_result(answer, self.gold_db, self.task["check"])
+            # 사후 분석용으로 제출물·결과를 로그에만 남긴다
+            submitted = answer.read_text()[:4000] if answer.exists() else None
+            self._log(kind="submit", ok=ok, error_kind=error_kind, result=preview, answer=submitted)
             # 실제 고객이 주는 정보만 준다: 남은 횟수·SQL 오류 내용은 알려 주지 않는다.
             return "ACCEPTED" if ok else "REJECTED: the customer says this result is not what they need."
 
@@ -139,11 +142,19 @@ class Episode:
         accepted = self.accepted()
         n_ask = self._count("ask")
         n_rework = sum(1 for e in subs if not e["ok"])
+        budget = self.task["budget"]
+        cost = {  # 실패 포함 비용: 실패하면 예산을 다 쓴 것으로 본다
+            str(r): (n_ask + r * n_rework) if accepted else (budget["ask"] + r * budget["submit"]) for r in CFC_WEIGHTS
+        }
         return {
+            "valid": n_ask + len(subs) > 0,  # 질문도 제출도 없으면 무효 (하네스·인프라 실패)
             "accepted": accepted,
             "n_questions": n_ask,
             "n_unknown": sum(1 for e in self.events if e["kind"] == "ask" and e.get("unknown")),
             "n_submissions": len(subs),
             "n_rework": n_rework,
+            "n_rework_interp": sum(1 for e in subs if e.get("error_kind") == "wrong_result"),
+            "n_rework_error": sum(1 for e in subs if e.get("error_kind") in ("missing", "sql_error")),
+            "cost": cost,
             "cfc": {str(r): n_ask + r * n_rework for r in CFC_WEIGHTS} if accepted else None,
         }

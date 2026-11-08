@@ -1,0 +1,26 @@
+{
+  "id": "anchor-revenue-noise",
+  "request": "지난달 매출 기준 상위 3개 고객을 뽑아 주세요. 결과는 고객 이름과 매출, 두 컬럼으로 주세요.",
+  "db": "data.sqlite",
+  "db_sql": "../anchor-revenue/data.sql",
+  "answer_file": "answer.sql",
+  "check": {
+    "type": "sql_result",
+    "gold_sql": "SELECT c.name, SUM(o.total_excl_tax - COALESCE((SELECT SUM(r.amount_excl_tax) FROM refunds r WHERE r.order_id=o.id),0)) AS revenue FROM orders o JOIN customers c ON c.id=o.customer_id WHERE o.order_date BETWEEN '2026-10-01' AND '2026-10-31' AND o.status='paid' GROUP BY c.id ORDER BY revenue DESC LIMIT 3"
+  },
+  "hidden": {
+    "fact_kind": "anchor",
+    "facts": [
+      "지난달은 2026년 10월이다.",
+      "매달 받는 매출 보고서에서 2026년 10월 전체 고객 매출 합계는 1,652이다.",
+      "당신은 매출이 기술적으로 어떻게 계산되는지 모른다: 세금 처리, 취소 주문, 반품, 주문일과 결제일 중 어느 날짜를 쓰는지 모른다."
+    ]
+  },
+  "budget": {
+    "ask": 5,
+    "submit": 2
+  },
+  "n_interpretations": 16,
+  "notes": "결정 4개 → 해석 16개. 고객 숫자와 맞는 해석 1개 (총액 범위 1640–1660). 정답 = 세전, 취소 제외, 반품 차감, 주문일 기준 (10월 총액 1,645). make_anchor_variants.py가 생성.",
+  "anchor_k": 1
+}
