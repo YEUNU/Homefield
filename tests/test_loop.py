@@ -64,3 +64,33 @@ def test_run_bash_truncates_and_times_out(tmp_path):
     out = run_bash("python3 -c 'print(\"x\" * 50000)'", tmp_path, limit=1000)
     assert out.startswith("exit=0") and len(out) < 1200 and "truncated" in out
     assert run_bash("sleep 3", tmp_path, timeout=1).startswith("exit=timeout")
+
+
+def test_finalize_after_turn_cap_delivers(tmp_path):
+    tool = {"role": "assistant", "content": None, "tool_calls": [call("true")]}
+    complete = scripted(tool, tool, tool, {"role": "assistant", "content": "submitted"})
+    result = run("loop", tmp_path, complete=complete, max_turns=2, finalize_turns=3)
+    assert result.stop == "max_turns+final" and result.turns == 4 and result.final == "submitted"
+    finalize = result.messages[6]  # system, user, (assistant, tool) x2, then the finalize message
+    assert finalize["role"] == "user" and "run out of turns" in finalize["content"]
+    assert sum(m["role"] == "user" for m in result.messages) == 2  # sent once
+
+
+def test_finalize_turns_are_capped(tmp_path):
+    complete = scripted(*[{"role": "assistant", "content": None, "tool_calls": [call("true")]} for _ in range(5)])
+    result = run("loop", tmp_path, complete=complete, max_turns=2, finalize_turns=3)
+    assert result.stop == "max_turns+cap" and result.turns == 5
+
+
+def test_finalize_on_deadline(tmp_path):
+    tool = {"role": "assistant", "content": None, "tool_calls": [call("true")]}
+    complete = scripted(tool, {"role": "assistant", "content": "ok"})
+    result = run("loop", tmp_path, complete=complete, max_turns=40, deadline_s=0, finalize_turns=1)
+    assert result.stop == "deadline+final" and "run out of time" in result.messages[4]["content"]
+
+
+def test_default_has_no_finalize(tmp_path):
+    complete = scripted(*[{"role": "assistant", "content": None, "tool_calls": [call("true")]} for _ in range(2)])
+    result = run("loop", tmp_path, complete=complete, max_turns=2)
+    assert result.stop == "max_turns" and result.turns == 2
+    assert sum(m["role"] == "user" for m in result.messages) == 1

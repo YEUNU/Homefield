@@ -90,6 +90,7 @@ We choose the comparison targets by recognition and role. Criteria: (1) use in t
 | C. Research baselines | `mini` | mini-swe-agent | The minimal baseline of the SWE-bench and Terminal-Bench papers | Confirmed |
 | | `terminus` | Terminus 2 | The official reference agent of Terminal-Bench | Unconfirmed (needs the Terminal-Bench run framework) |
 | | `bare` | Homefield M0 (`homefield/`): a model-independent tool-call loop with one shell tool | The lower bound of the harness effect and the base of our harness | Connected |
+| | `bare-fs` | `bare` with a forced final delivery: when the turn cap (40) or a 13-minute deadline is reached, the loop tells the model to stop exploring and deliver, and allows 3 more turns | Isolates termination failures from the rest of the procedure | Connected |
 | | `bird-official` | The official BIRD-Interact baseline | The baseline of the benchmark that the tasks come from | Not implemented |
 
 Excluded harnesses and reasons:

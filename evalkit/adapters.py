@@ -198,8 +198,15 @@ def bare(ep, prompt: str, model: str, env: dict):
     )
 
 
+def bare_fs(ep, prompt: str, model: str, env: dict):
+    """`bare` + forced final submit (Experiment K0): 3 delivery turns after the turn cap or 13 min."""
+    cmd, extra = bare(ep, prompt, model, env)
+    return cmd + ["--finalize-turns", "3", "--deadline-s", "780"], extra
+
+
 ADAPTERS = {
     "bare": bare,
+    "bare-fs": bare_fs,
     "claude": claude,
     "codex": codex,
     "opencode": opencode,
