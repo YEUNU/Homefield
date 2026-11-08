@@ -59,15 +59,27 @@ python3 -m evalkit.report evals/results/<날짜>.jsonl --task tasks/smoke-revenu
 - 하네스 연결 방법: `docs/HARNESSES.md`
 
 ## 6. 하네스 ID
-| ID | 하네스 | 상태 |
-|---|---|---|
-| `claude` | Claude Code | 연결됨 |
-| `codex` | Codex CLI | 연결됨 |
-| `opencode` | OpenCode | 연결됨 |
-| `mini` | mini-swe-agent | 연결됨 |
-| `openhands` | OpenHands CLI | 연결됨 |
-| `bare` | 단순 도구 호출 루프 (하한선) | 미구현 |
-| `bird-official` | BIRD-Interact 공식 기준선 | 미구현 |
+비교 대상은 인지도와 역할로 고른다. 기준: (1) 현업 사용량·GitHub 스타, (2) 공개 리더보드(Terminal-Bench, SWE-bench) 등장, (3) OpenAI 호환 로컬 모델로 headless 실행 가능.
+
+| 단계 | ID | 하네스 | 고른 이유 | 연결 |
+|---|---|---|---|---|
+| A. 현업 대표 | `claude` | Claude Code | 상용 코딩 에이전트 대표. FDE가 실제로 쓰는 도구 | 확인됨 |
+| | `codex` | Codex CLI | 오픈소스 상용 하네스, 약 126k 스타 (2차 자료) | 확인됨 |
+| | `opencode` | OpenCode | 오픈소스 최다 스타, 약 209k (2차 자료) | 확인됨 |
+| | `qwen` | Qwen Code | Gemini CLI 계열(약 107k 스타)의 오픈 모델용 포크. Gemini CLI 본체는 존속 여부가 불분명하고 OpenAI 호환 연결이 없다 | 미확인 |
+| B. 오픈소스 범용 | `openhands` | OpenHands CLI | 범용 에이전트. TheAgentCompany 기본 기준선 | 확인됨 |
+| | `goose` | Goose | 범용 오픈소스 에이전트, 약 55k 스타 (2차 자료) | 미확인 |
+| C. 연구 기준선 | `mini` | mini-swe-agent | SWE-bench·Terminal-Bench 논문의 최소 기준선 | 확인됨 |
+| | `terminus` | Terminus 2 | Terminal-Bench 공식 참조 에이전트 | 미확인 (Terminal-Bench 실행 틀 필요) |
+| | `bare` | 단순 도구 호출 루프 | 하네스 효과의 하한선. 직접 작성 | 미구현 |
+| | `bird-official` | BIRD-Interact 공식 기준선 | 과제 출처 벤치마크의 기준선 | 미구현 |
+
+뺀 것과 이유:
+- Aider (약 49k 스타): 파일 편집 중심이라 셸 규약과 맞지 않고, 2026-05 이후 커밋이 없다 (2차 자료).
+- Cline, Kilo Code: IDE 확장이 본체라 headless 비교에 맞지 않는다.
+- Gemini CLI 본체: 위 `qwen` 설명 참고.
+
+스타 수는 2026-08~09 기준 2차 자료이다 (morphllm.com, openalternative.co). 실제 수치는 각 저장소에서 확인한다.
 
 ## 7. 결과 필드 (`evals/results/<날짜>.jsonl`, 한 줄 = 에피소드 1개)
 | 필드 | 뜻 |
