@@ -66,9 +66,9 @@ python3 -m evalkit.report evals/results/<날짜>.jsonl --task tasks/smoke-revenu
 | A. 현업 대표 | `claude` | Claude Code | 상용 코딩 에이전트 대표. FDE가 실제로 쓰는 도구 | 확인됨 |
 | | `codex` | Codex CLI | 오픈소스 상용 하네스, 약 126k 스타 (2차 자료) | 확인됨 |
 | | `opencode` | OpenCode | 오픈소스 최다 스타, 약 209k (2차 자료) | 확인됨 |
-| | `qwen` | Qwen Code | Gemini CLI 계열(약 107k 스타)의 오픈 모델용 포크. Gemini CLI 본체는 존속 여부가 불분명하고 OpenAI 호환 연결이 없다 | 미확인 |
+| | `qwen` | Qwen Code | Gemini CLI 계열(약 107k 스타)의 오픈 모델용 포크. Gemini CLI 본체는 존속 여부가 불분명하고 OpenAI 호환 연결이 없다 | 확인됨 |
 | B. 오픈소스 범용 | `openhands` | OpenHands CLI | 범용 에이전트. TheAgentCompany 기본 기준선 | 확인됨 |
-| | `goose` | Goose | 범용 오픈소스 에이전트, 약 55k 스타 (2차 자료) | 미확인 |
+| | `goose` | Goose | 범용 오픈소스 에이전트, 약 55k 스타 (2차 자료) | 확인됨 |
 | C. 연구 기준선 | `mini` | mini-swe-agent | SWE-bench·Terminal-Bench 논문의 최소 기준선 | 확인됨 |
 | | `terminus` | Terminus 2 | Terminal-Bench 공식 참조 에이전트 | 미확인 (Terminal-Bench 실행 틀 필요) |
 | | `bare` | 단순 도구 호출 루프 | 하네스 효과의 하한선. 직접 작성 | 미구현 |

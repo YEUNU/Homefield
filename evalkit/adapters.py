@@ -139,4 +139,44 @@ def openhands(ep, prompt: str, model: str, env: dict):
     )
 
 
-ADAPTERS = {"claude": claude, "codex": codex, "opencode": opencode, "mini": mini, "openhands": openhands}
+def qwen(ep, prompt: str, model: str, env: dict):
+    return (
+        ["npx", "-y", "@qwen-code/qwen-code@latest", "-p", prompt, "--yolo", "--auth-type", "openai"],
+        {
+            "HOME": str(_home(ep, "qwen")),
+            "npm_config_cache": os.environ.get("npm_config_cache", str(Path.home() / ".npm")),
+            "QWEN_CODE_SUPPRESS_YOLO_WARNING": "1",
+            "OPENAI_API_KEY": env["LOCAL_LLM_API_KEY"],
+            "OPENAI_BASE_URL": env["LOCAL_LLM_BASE_URL"],
+            "OPENAI_MODEL": model,
+        },
+    )
+
+
+def goose(ep, prompt: str, model: str, env: dict):
+    home = _home(ep, "goose")
+    return (
+        ["goose", "run", "--no-session", "-t", prompt],
+        {
+            "HOME": str(home),
+            "XDG_CONFIG_HOME": str(home / ".config"),
+            "GOOSE_PROVIDER": "openai",
+            "GOOSE_MODEL": model,
+            "GOOSE_MODE": "auto",
+            "GOOSE_DISABLE_KEYRING": "1",
+            "OPENAI_API_KEY": env["LOCAL_LLM_API_KEY"],
+            "OPENAI_HOST": env["LOCAL_LLM_BASE_URL"].removesuffix("/v1"),
+            "OPENAI_BASE_PATH": "v1/chat/completions",
+        },
+    )
+
+
+ADAPTERS = {
+    "claude": claude,
+    "codex": codex,
+    "opencode": opencode,
+    "qwen": qwen,
+    "openhands": openhands,
+    "goose": goose,
+    "mini": mini,
+}

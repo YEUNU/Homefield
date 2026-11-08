@@ -24,6 +24,8 @@ audience: 배포
 | `openhands` | OpenHands CLI (SDK 1.21.0) | `COUNT=3` 정답 | `LLM_MODEL=openai/<모델>`, `LLM_BASE_URL`, `--override-with-envs` | headless + `--yolo`. CLI는 Docker 없이 동작. 격리 실행·GUI는 Docker 사용 |
 | `codex` | Codex CLI 0.167.0 | `COUNT=3` 정답 | `config.toml` 공급자 `wire_api="responses"` | "모델 메타데이터 없음" 경고. `exec -s workspace-write` |
 | `opencode` | OpenCode (npm `opencode-ai`) | 정답 (`COUNT=4`: 설정 파일 포함) | `@ai-sdk/openai-compatible` 공급자 | `permission.bash=allow` |
+| `qwen` | Qwen Code 0.27.0 | `COUNT=3` 정답 | `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_MODEL` + `--auth-type openai` | `-p` + `--yolo`. 설정 격리는 `HOME` |
+| `goose` | Goose CLI 1.57.0 (Homebrew `block-goose-cli`) | `COUNT=3` 정답 | `GOOSE_PROVIDER=openai`, `OPENAI_HOST`, `OPENAI_BASE_PATH=v1/chat/completions` | `goose run --no-session -t`, `GOOSE_MODE=auto` |
 | `claude` | Claude Code (npm 최신) | `COUNT=3` 정답 | `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_MODEL` 등 | "unrecognized_model" 경고. `-p` 비대화 모드 |
 
 ## 설정 요약 (키는 `.env`의 `LOCAL_LLM_API_KEY`)
@@ -38,6 +40,15 @@ npx -y @anthropic-ai/claude-code -p "<과제>" --allowedTools "Bash(ls*)"
 #   model = "google/gemma-4-31B-it"; model_provider = "local"
 #   [model_providers.local] base_url = "$LOCAL_LLM_BASE_URL"; env_key = "LOCAL_LLM_API_KEY"; wire_api = "responses"
 CODEX_HOME=<격리 폴더> npx -y @openai/codex exec --skip-git-repo-check -s workspace-write "<과제>"
+
+# qwen (Qwen Code)
+HOME=<격리> OPENAI_BASE_URL=$LOCAL_LLM_BASE_URL OPENAI_API_KEY=$LOCAL_LLM_API_KEY OPENAI_MODEL=google/gemma-4-31B-it \
+npx -y @qwen-code/qwen-code -p "<과제>" --yolo --auth-type openai
+
+# goose (Goose)
+HOME=<격리> GOOSE_PROVIDER=openai GOOSE_MODEL=google/gemma-4-31B-it GOOSE_MODE=auto GOOSE_DISABLE_KEYRING=1 \
+OPENAI_HOST=$LOCAL_LLM_HOST OPENAI_BASE_PATH=v1/chat/completions OPENAI_API_KEY=$LOCAL_LLM_API_KEY \
+goose run --no-session -t "<과제>"
 
 # opencode (OpenCode): 작업 폴더의 opencode.json 에 openai-compatible 공급자 정의
 XDG_CONFIG_HOME=<격리> XDG_DATA_HOME=<격리> npx -y opencode-ai run "<과제>"
@@ -57,7 +68,7 @@ uvx --python 3.12 openhands --headless --yolo --override-with-envs --exit-withou
 
 ## 공통 규약 (evalkit)
 - 답 제출: 작업 폴더의 답 파일. 고객 질문: `<bin>/ask_user "질문"`. 제출: `<bin>/submit_answer`.
-- 다섯 하네스 모두 이 규약으로 스모크 과제를 완료했다. 결과는 `docs/EVALUATION.md`.
+- 일곱 하네스 모두 이 규약으로 스모크 과제를 완료했다. 결과는 `docs/EVALUATION.md`.
 - 실행: `python3 -m evalkit.run --task tasks/smoke-revenue`
 
 ## 남은 확인
