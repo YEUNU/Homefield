@@ -1,6 +1,6 @@
 """고객 시뮬레이터: 숨은 사실만 알고 답한다. 정답 SQL·결과는 모른다."""
 
-from evalkit import llm
+from homefield import model as llm
 
 SYSTEM = """You role-play a business customer who asked a data analyst for a report.
 You know ONLY the facts below. Rules:

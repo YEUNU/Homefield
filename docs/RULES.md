@@ -74,11 +74,12 @@ audience: 배포 | 내부               # docs/ 는 배포, internal/ 은 내부
 - Python 3.11 이상. 표준 라이브러리를 먼저 쓴다.
 - 런타임 외부 의존성을 추가하려면 결정 기록(ADR)을 남긴다.
 - 하네스 코어는 범용 에이전트 프레임워크(LangChain 등)를 import하지 않는다.
-- 모델 호출은 한 모듈(현재 `evalkit/llm.py`)을 거친다. 다른 곳에서 HTTP로 모델을 직접 부르지 않는다.
+- 모델 호출은 한 모듈(`homefield/model.py`)을 거친다. 다른 곳에서 HTTP로 모델을 직접 부르지 않는다.
 
 ### 2.2 구조와 이름
 | 위치 | 내용 |
 |---|---|
+| `homefield/` | 하네스 코어 (모델 호출, 루프, 도구, CLI) |
 | `evalkit/` | 평가 도구 (실행기, 에피소드, 어댑터, 채점, 보고) |
 | `tests/` | pytest 테스트 |
 | `tasks/<kebab-id>/` | 과제: `task.json` + 데이터 생성 파일 |

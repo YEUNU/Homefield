@@ -71,7 +71,7 @@ python3 -m evalkit.report evals/results/<날짜>.jsonl --task tasks/smoke-revenu
 | | `goose` | Goose | 범용 오픈소스 에이전트, 약 55k 스타 (2차 자료) | 확인됨 |
 | C. 연구 기준선 | `mini` | mini-swe-agent | SWE-bench·Terminal-Bench 논문의 최소 기준선 | 확인됨 |
 | | `terminus` | Terminus 2 | Terminal-Bench 공식 참조 에이전트 | 미확인 (Terminal-Bench 실행 틀 필요) |
-| | `bare` | 단순 도구 호출 루프 | 하네스 효과의 하한선. 직접 작성 | 미구현 |
+| | `bare` | Homefield M0 (`homefield/`): 모델 독립 도구 호출 루프, 셸 도구 1개 | 하네스 효과의 하한선이자 우리 하네스의 뼈대 | 연결됨 |
 | | `bird-official` | BIRD-Interact 공식 기준선 | 과제 출처 벤치마크의 기준선 | 미구현 |
 
 뺀 것과 이유:
