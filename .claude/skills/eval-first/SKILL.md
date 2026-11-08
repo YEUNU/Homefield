@@ -9,17 +9,14 @@ description: Build the eval before the feature for any harness component (loop, 
 
 ## 순서
 1. **질문 정의**: 이 변경이 어떤 지표를 움직여야 하는가? (`docs/DATASETS.md`의 지표 목록에서 고른다.)
-2. **eval 케이스 작성**: `evals/<component>/` 아래에 입력·기대 결과를 둔다. 최소 5개. 실패 케이스를 포함한다.
-3. **기준선 실행**: 변경 전 결과를 `evals/results/<date>-<component>-baseline.jsonl`에 남긴다.
+2. **eval 과제 작성**: `evals/<component>/` 아래에 입력·기대 결과를 둔다. 최소 5개. 실패 과제를 포함한다.
+3. **기준선 실행**: 변경 전 상태로 evalkit을 돌린다. 결과는 `evals/results/<날짜>.jsonl`에 쌓인다.
 4. **구현**.
-5. **비교 실행**: 같은 케이스, 같은 모델, 같은 seed. 결과 파일을 나란히 남긴다.
+5. **비교 실행**: 같은 과제, 같은 모델, 같은 반복 수. `python3 -m evalkit.report`로 기준선과 나란히 본다.
 6. **ablation**: 구성 요소를 하나씩 끄고 다시 돈다. 효과가 없는 요소는 제거 후보로 기록한다.
 
 ## 결과 한 줄마다 기록할 필드
-`case_id, variant, model, success, tokens_in, tokens_out, n_questions, silent_error, latency_s, notes`
-
-- `n_questions`: 사용자(또는 시뮬레이터)에게 한 질문 수.
-- `silent_error`: 묻지 않고 틀린 가정을 해서 틀린 경우 true.
+필드 정의는 `docs/EVALUATION.md` §7이 원천이다. evalkit 실행기가 그 형식으로 쓴다.
 
 ## 규칙
 - 모델은 기본으로 로컬 LLM을 쓴다 (`local-llm` 스킬). 모델 ID를 결과에 반드시 남긴다.

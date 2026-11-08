@@ -8,13 +8,13 @@ FDE(Forward Deployed Engineer) 작업 흐름을 위한 에이전트 하네스. �
 - 평가 규약: [docs/EVALUATION.md](docs/EVALUATION.md)
 - 비교 하네스 연결: [docs/HARNESSES.md](docs/HARNESSES.md)
 - 테스트 데이터셋: [docs/DATASETS.md](docs/DATASETS.md)
-- 기여·Git 정책: [docs/GIT_POLICY.md](docs/GIT_POLICY.md)
+- 기여·Git 정책: [docs/RULES.md](docs/RULES.md)
 
 ## 시작
 ```bash
 git config core.hooksPath .githooks
 cp .env.example .env        # OpenAI 호환 LLM 서버 주소와 키
-scripts/llm_check.sh        # 연결 확인
+scripts/check_llm.sh        # 연결 확인
 uvx --python 3.12 pytest -q # 프로토콜 테스트
 python3 -m evalkit.run --task tasks/smoke-revenue --harness claude
 ```

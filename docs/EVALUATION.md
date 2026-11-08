@@ -1,3 +1,8 @@
+---
+status: 초안
+updated: 2026-11-08
+audience: 배포
+---
 # 평가 규약 (evalkit)
 
 Homefield는 에이전트 하네스를 같은 모델·같은 조건에서 비교한다. 이 문서는 그 규약을 설명한다.
@@ -53,7 +58,36 @@ python3 -m evalkit.report evals/results/<날짜>.jsonl --task tasks/smoke-revenu
 - 에피소드 기록: `$HF_RUNS_DIR` (기본: 임시 폴더/homefield-runs)
 - 하네스 연결 방법: `docs/HARNESSES.md`
 
-## 6. 프롬프트 변형
+## 6. 하네스 ID
+| ID | 하네스 | 상태 |
+|---|---|---|
+| `claude` | Claude Code | 연결됨 |
+| `codex` | Codex CLI | 연결됨 |
+| `opencode` | OpenCode | 연결됨 |
+| `mini` | mini-swe-agent | 연결됨 |
+| `openhands` | OpenHands CLI | 연결됨 |
+| `bare` | 단순 도구 호출 루프 (하한선) | 미구현 |
+| `bird-official` | BIRD-Interact 공식 기준선 | 미구현 |
+
+## 7. 결과 필드 (`evals/results/<날짜>.jsonl`, 한 줄 = 에피소드 1개)
+| 필드 | 뜻 |
+|---|---|
+| `task_id` | 과제 ID |
+| `harness` | 하네스 ID (§6) |
+| `variant` | 프롬프트 변형 (§8) |
+| `repeat` | 반복 번호 (0부터) |
+| `model` | 모델 ID |
+| `ts` | 기록 시각 (ISO 8601) |
+| `accepted` | 예산 안에 수락되었는가 |
+| `n_questions`, `n_unknown` | 질문 수, 그중 "모름" 답 수 |
+| `n_submissions`, `n_rework` | 제출 수, 그중 거절 수 |
+| `cfc` | `{"1": …, "3": …, "10": …}`. 수락되지 않으면 `null` |
+| `tokens_in`, `tokens_out`, `silent_error` | 예약 필드. 아직 `null` |
+| `latency_s` | 하네스 실행 시간 |
+| `notes` | 종료 코드 또는 `timeout` |
+| `episode_dir` | 에피소드 기록 폴더 |
+
+## 8. 프롬프트 변형
 | ID | 내용 |
 |---|---|
 | E0 | 기본 규약만 |

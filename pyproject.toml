@@ -7,3 +7,11 @@ dependencies = []
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["internal"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

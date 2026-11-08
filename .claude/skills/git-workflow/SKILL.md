@@ -1,23 +1,16 @@
 ---
 name: git-workflow
-description: Branch, commit, PR, and release rules for the Homefield repo (public GitHub repo YEUNU/Homefield). Use whenever creating a branch, writing a commit message, opening a PR, tagging a release, or deciding whether a file may be committed.
+description: Branch, commit, PR, and release rules for the Homefield repos (public YEUNU/Homefield, private YEUNU/Homefield-internal). Use whenever creating a branch, writing a commit message, opening a PR, tagging a release, or deciding whether a file may be committed or which repo a document belongs in.
 ---
 
 # Git Workflow
 
-정책 원문: `docs/GIT_POLICY.md`.
+규칙 원천: `docs/RULES.md` §3 (배포), §1.1 (문서 위치), §2.4 (커밋 금지 대상). 여기서 규칙을 반복하지 않는다.
 
 ## 체크리스트
-1. `main`이면 먼저 브랜치를 만든다: `<feat|fix|eval|docs|chore|exp>/<짧은-설명>`.
-2. 커밋 전에 staged 파일을 본다. 다음은 절대 커밋하지 않는다 (공개 저장소):
-   - `.env`, 키·토큰, `data/`, 고객 이름·스키마·현장 메모, Engagement 상태.
-3. 커밋 메시지: `<유형>(<범위>): <요약>`. 본문에 "왜". hook이 형식을 검사한다.
-4. hook이 막으면 우회(`--no-verify`)하지 않는다. 원인을 고친다.
-5. push, PR 생성, 태그, 릴리스는 사용자 승인 후에만 한다.
-6. PR 본문: 템플릿을 채우고 eval 결과를 붙인다. 없으면 "미검증"이라고 쓴다.
-7. 병합은 squash. 직접 `main`에 push하지 않는다.
-
-## 클론 직후
-```bash
-git config core.hooksPath .githooks
-```
+1. `main`이면 브랜치를 먼저 만든다 (RULES §3.2).
+2. 문서라면 위치를 정한다: 공개 `docs/` 또는 비공개 `internal/` (RULES §1.1). 애매하면 `internal/`.
+3. 커밋 전 검사: `uvx ruff format . && uvx ruff check . && uvx --python 3.12 pytest -q && python3 scripts/check_rules.py`
+4. 커밋 메시지 형식은 RULES §3.3. hook이 막으면 `--no-verify`로 우회하지 않고 원인을 고친다.
+5. push, PR, 태그, force-push, 기록 재작성, 저장소 설정 변경은 사용자 승인 후에만 한다 (RULES §3.6).
+6. `internal/`은 별도 저장소다. 그 안에서 따로 커밋·push한다.

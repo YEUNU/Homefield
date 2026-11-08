@@ -1,4 +1,5 @@
 """제출물 채점. 답 SQL을 원본 DB 사본에서 실행해 정답 SQL 결과와 비교한다."""
+
 import math
 import sqlite3
 from pathlib import Path
@@ -18,14 +19,17 @@ def _cell_eq(x, y, tol: float) -> bool:
     return x == y
 
 
+def _row_key(row: tuple) -> tuple:
+    return tuple((0, round(c, 6)) if isinstance(c, (int, float)) else (1, str(c)) for c in row)
+
+
 def same_rows(got: list[tuple], gold: list[tuple], ordered: bool = False, tol: float = 1e-6) -> bool:
     if len(got) != len(gold):
         return False
     if not ordered:
-        key = lambda r: tuple((0, round(c, 6)) if isinstance(c, (int, float)) else (1, str(c)) for c in r)
-        got, gold = sorted(got, key=key), sorted(gold, key=key)
-    for a, b in zip(got, gold):
-        if len(a) != len(b) or not all(_cell_eq(x, y, tol) for x, y in zip(a, b)):
+        got, gold = sorted(got, key=_row_key), sorted(gold, key=_row_key)
+    for a, b in zip(got, gold, strict=True):
+        if len(a) != len(b) or not all(_cell_eq(x, y, tol) for x, y in zip(a, b, strict=True)):
             return False
     return True
 

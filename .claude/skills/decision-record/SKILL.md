@@ -9,9 +9,12 @@ description: Record a design decision or an unconfirmed assumption for the FDE h
 
 ## 형식
 ```markdown
+---
+status: 결정 | 가정 | 폐기 | 대체됨
+updated: YYYY-MM-DD
+audience: 내부
+---
 # NNNN. <제목>
-- 날짜: YYYY-MM-DD
-- 상태: 결정 | 가정 | 폐기 | 대체됨(→ NNNN)
 - 영향 범위: 코어 | 어댑터 | 도메인 팩 | eval | P1–P5
 
 ## 맥락

@@ -8,6 +8,7 @@
 정답·숨은 사실은 이 프로세스 메모리와 작업 폴더 밖 사본에만 있다.
 한계: 같은 머신에서 돌므로 에이전트가 파일 시스템을 뒤지면 과제 원본을 찾을 수 있다. 격리는 Docker 단계에서 한다.
 """
+
 import json
 import secrets
 import shutil
@@ -32,6 +33,7 @@ def guess_baseline(n_interpretations: int, submit_budget: int) -> dict:
     p = tries / n_interpretations
     rework = (tries - 1) / 2  # 성공했을 때 앞선 실패 수의 기댓값
     return {"p_success": round(p, 3), "cfc_given_success": {str(r): round(r * rework, 2) for r in CFC_WEIGHTS}}
+
 
 SHIM = """#!/usr/bin/env python3
 import json, sys, urllib.request

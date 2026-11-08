@@ -1,5 +1,6 @@
 """비교 하네스 어댑터. 각 함수는 (명령, 추가 환경변수)를 돌려준다. 모든 설정은 에피소드 폴더 안에 격리한다.
 연결 방식 근거: docs/HARNESSES.md"""
+
 import json
 import os
 from pathlib import Path
@@ -13,8 +14,17 @@ def _home(ep, name: str) -> Path:
 
 def claude(ep, prompt: str, model: str, env: dict):
     return (
-        ["npx", "-y", "@anthropic-ai/claude-code@latest", "-p", prompt,
-         "--allowedTools", "Bash,Read,Write,Edit,Glob,Grep", "--output-format", "json"],
+        [
+            "npx",
+            "-y",
+            "@anthropic-ai/claude-code@latest",
+            "-p",
+            prompt,
+            "--allowedTools",
+            "Bash,Read,Write,Edit,Glob,Grep",
+            "--output-format",
+            "json",
+        ],
         {
             "CLAUDE_CONFIG_DIR": str(_home(ep, "claude")),
             "ANTHROPIC_BASE_URL": env["LOCAL_LLM_BASE_URL"].removesuffix("/v1"),
@@ -36,8 +46,18 @@ def codex(ep, prompt: str, model: str, env: dict):
         f'env_key = "LOCAL_LLM_API_KEY"\nwire_api = "responses"\n'
     )
     return (
-        ["npx", "-y", "@openai/codex@latest", "exec", "--skip-git-repo-check", "-s", "workspace-write",
-         "-c", "sandbox_workspace_write.network_access=true", prompt],
+        [
+            "npx",
+            "-y",
+            "@openai/codex@latest",
+            "exec",
+            "--skip-git-repo-check",
+            "-s",
+            "workspace-write",
+            "-c",
+            "sandbox_workspace_write.network_access=true",
+            prompt,
+        ],
         {"CODEX_HOME": str(home), "LOCAL_LLM_API_KEY": env["LOCAL_LLM_API_KEY"]},
     )
 
@@ -46,11 +66,14 @@ def opencode(ep, prompt: str, model: str, env: dict):
     home = _home(ep, "opencode")
     cfg = {
         "$schema": "https://opencode.ai/config.json",
-        "provider": {"local": {
-            "npm": "@ai-sdk/openai-compatible", "name": "Local LLM",
-            "options": {"baseURL": env["LOCAL_LLM_BASE_URL"], "apiKey": env["LOCAL_LLM_API_KEY"]},
-            "models": {model: {"name": model, "tool_call": True}},
-        }},
+        "provider": {
+            "local": {
+                "npm": "@ai-sdk/openai-compatible",
+                "name": "Local LLM",
+                "options": {"baseURL": env["LOCAL_LLM_BASE_URL"], "apiKey": env["LOCAL_LLM_API_KEY"]},
+                "models": {model: {"name": model, "tool_call": True}},
+            }
+        },
         "model": f"local/{model}",
         "permission": {"bash": "allow", "edit": "allow", "external_directory": "allow"},
     }
@@ -61,8 +84,26 @@ def opencode(ep, prompt: str, model: str, env: dict):
 
 def mini(ep, prompt: str, model: str, env: dict):
     return (
-        ["uvx", "--python", "3.12", "--from", "mini-swe-agent", "--with", "mcp", "mini", "-m", f"openai/{model}",
-         "-t", prompt, "-y", "-l", "0", "--exit-immediately", "-o", str(ep.root / "traj.json")],
+        [
+            "uvx",
+            "--python",
+            "3.12",
+            "--from",
+            "mini-swe-agent",
+            "--with",
+            "mcp",
+            "mini",
+            "-m",
+            f"openai/{model}",
+            "-t",
+            prompt,
+            "-y",
+            "-l",
+            "0",
+            "--exit-immediately",
+            "-o",
+            str(ep.root / "traj.json"),
+        ],
         {
             "MSWEA_GLOBAL_CONFIG_DIR": str(_home(ep, "mini")),
             "MSWEA_CONFIGURED": "true",
@@ -75,8 +116,18 @@ def mini(ep, prompt: str, model: str, env: dict):
 
 def openhands(ep, prompt: str, model: str, env: dict):
     return (
-        ["uvx", "--python", "3.12", "openhands", "--headless", "--yolo", "--override-with-envs",
-         "--exit-without-confirmation", "-t", prompt],
+        [
+            "uvx",
+            "--python",
+            "3.12",
+            "openhands",
+            "--headless",
+            "--yolo",
+            "--override-with-envs",
+            "--exit-without-confirmation",
+            "-t",
+            prompt,
+        ],
         {
             "HOME": str(_home(ep, "openhands")),
             "UV_CACHE_DIR": os.environ.get("UV_CACHE_DIR", str(Path.home() / ".cache" / "uv")),

@@ -15,5 +15,6 @@ scan=$(echo "$files" | grep -v "^\.githooks/" || true)
 if [ -n "$scan" ] && git diff --cached -U0 -- $scan 2>/dev/null | grep -E '^\+' | grep -nE '(sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{30,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|LOCAL_LLM_API_KEY=.+)'; then
   echo "차단: 비밀값으로 보이는 문자열이 있다."; fail=1
 fi
+python3 scripts/check_rules.py --staged || fail=1
 if command -v gitleaks >/dev/null; then gitleaks protect --staged --no-banner || fail=1; fi
 exit $fail

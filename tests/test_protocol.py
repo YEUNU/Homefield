@@ -96,6 +96,7 @@ def test_unknown_answers_are_counted(tmp_path):
 
 def test_guess_baseline():
     from evalkit.episode import guess_baseline
+
     b = guess_baseline(4, 3)
     assert b["p_success"] == 0.75
     assert b["cfc_given_success"] == {"1": 1.0, "3": 3.0, "10": 10.0}

@@ -5,6 +5,7 @@
 결과: evals/results/<날짜>.jsonl 에 한 줄씩 추가. 에피소드 기록은 $HF_RUNS_DIR (기본: 임시 폴더/homefield-runs).
 에피소드 폴더는 저장소 밖에 둔다. 저장소 안이면 하네스가 우리 CLAUDE.md·스킬을 읽어 비교가 오염된다.
 """
+
 import argparse
 import json
 import os
@@ -28,7 +29,8 @@ Customer request: {request}
 The working directory contains: {files}
 
 Rules:
-1. Write your final answer as ONE SQLite query in the file `{answer_file}` in the working directory. The query's result is your deliverable.
+1. Write your final answer as ONE SQLite query in the file `{answer_file}` in the working directory.
+   The query's result is your deliverable.
 2. To ask the customer a clarifying question, run this shell command: {bin}/ask_user "your question"
    Questions cost the customer's time. Ask only when needed. Budget: {ask} questions.
 3. To deliver, run this shell command: {bin}/submit_answer
@@ -54,22 +56,34 @@ def build_db(task_dir: Path, task: dict, out: Path) -> Path:
     return db
 
 
-def run_one(task_dir: Path, task: dict, harness: str, variant: str, rep: int, model: str, timeout: int,
-            runs: Path, src_db: Path) -> dict:
+def run_episode(
+    task_dir: Path, task: dict, harness: str, variant: str, rep: int, model: str, timeout: int, runs: Path, src_db: Path
+) -> dict:
     root = runs / f"{task['id']}__{harness}__{variant}__r{rep}"
     ep = Episode(task, src_db, root, simulate=make_customer(task))
     ep.start()
     prompt = PROMPT.format(
-        request=task["request"], files=", ".join(sorted(p.name for p in ep.work.iterdir())),
-        answer_file=task["answer_file"], bin=ep.bin, ask=task["budget"]["ask"], submit=task["budget"]["submit"],
+        request=task["request"],
+        files=", ".join(sorted(p.name for p in ep.work.iterdir())),
+        answer_file=task["answer_file"],
+        bin=ep.bin,
+        ask=task["budget"]["ask"],
+        submit=task["budget"]["submit"],
         extra=VARIANTS[variant],
     )
     cmd, extra = ADAPTERS[harness](ep, prompt, model, llm.load_env())
     env = {**os.environ, **extra, "PATH": f"{ep.bin}:{os.environ['PATH']}"}
     note, t0 = "ok", time.time()
     with open(root / "stdout.txt", "w") as out:
-        proc = subprocess.Popen(cmd, cwd=ep.work, env=env, stdin=subprocess.DEVNULL, stdout=out,
-                                stderr=subprocess.STDOUT, start_new_session=True)
+        proc = subprocess.Popen(
+            cmd,
+            cwd=ep.work,
+            env=env,
+            stdin=subprocess.DEVNULL,
+            stdout=out,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
         try:
             rc = proc.wait(timeout=timeout)
             note = f"exit={rc}"
@@ -79,10 +93,19 @@ def run_one(task_dir: Path, task: dict, harness: str, variant: str, rep: int, mo
     latency = round(time.time() - t0, 1)
     ep.stop()
     return {
-        "case_id": task["id"], "variant": harness, "prompt_variant": variant, "repeat": rep, "model": model,
+        "task_id": task["id"],
+        "harness": harness,
+        "variant": variant,
+        "repeat": rep,
+        "model": model,
         "ts": datetime.now().isoformat(timespec="seconds"),
-        **ep.metrics(), "success": ep.accepted(), "tokens_in": None, "tokens_out": None, "silent_error": None,
-        "latency_s": latency, "notes": note, "episode_dir": str(root),
+        **ep.metrics(),
+        "tokens_in": None,
+        "tokens_out": None,
+        "silent_error": None,
+        "latency_s": latency,
+        "notes": note,
+        "episode_dir": str(root),
     }
 
 
@@ -98,7 +121,8 @@ def main():
 
     task_dir = Path(args.task)
     task = json.loads((task_dir / "task.json").read_text())
-    runs = Path(os.environ.get("HF_RUNS_DIR", Path(tempfile.gettempdir()) / "homefield-runs")) / datetime.now().strftime("%Y%m%d-%H%M%S")
+    runs_root = Path(os.environ.get("HF_RUNS_DIR", Path(tempfile.gettempdir()) / "homefield-runs"))
+    runs = runs_root / datetime.now().strftime("%Y%m%d-%H%M%S")
     runs.mkdir(parents=True)
     src_db = build_db(task_dir, task, runs)
     results = llm.ROOT / "evals" / "results"
@@ -109,12 +133,15 @@ def main():
     for rep in range(args.repeat):
         for v in args.variant.split(","):
             for h in args.harness.split(","):
-                row = run_one(task_dir, task, h, v, rep, args.model, args.timeout, runs, src_db)
+                row = run_episode(task_dir, task, h, v, rep, args.model, args.timeout, runs, src_db)
                 with open(out, "a") as f:
                     f.write(json.dumps(row, ensure_ascii=False) + "\n")
-                print(f"r{rep} {v} {h:10s} success={row['success']!s:5s} q={row['n_questions']} "
-                      f"unk={row['n_unknown']} sub={row['n_submissions']} rework={row['n_rework']} "
-                      f"cfc={row['cfc']} {row['latency_s']}s {row['notes']}", flush=True)
+                print(
+                    f"r{rep} {v} {h:10s} accepted={row['accepted']!s:5s} q={row['n_questions']} "
+                    f"unk={row['n_unknown']} sub={row['n_submissions']} rework={row['n_rework']} "
+                    f"cfc={row['cfc']} {row['latency_s']}s {row['notes']}",
+                    flush=True,
+                )
     print(f"results: {out}\nepisodes: {runs}")
 
 

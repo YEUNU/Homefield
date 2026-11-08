@@ -5,13 +5,9 @@
 - 문체는 ASD-STE100 스타일이다: 짧은 문장, 능동태, 한 문장에 한 내용, 용어 일관.
 - 주장에는 근거(논문/공식 문서)를 붙인다. 재현되지 않은 블로그 수치는 그렇다고 표시한다.
 
-## 문서 위치: 배포 대 내부
-- `docs/` = **배포 문서** (공개 저장소에 올라간다). 외부 독자가 읽어도 되는 내용만 쓴다.
-- `internal/` = **내부 문서**. 비공개 저장소 `YEUNU/Homefield-internal`의 클론이다. Homefield git에서 제외된다.
-  - 없으면: `git clone https://github.com/YEUNU/Homefield-internal.git internal`
-  - 내부 문서는 `internal/` 안에서 따로 커밋·push한다.
-- 내부로 보내는 것: 전략, 차별점·선행 연구 분석, 자문 기록, 설계 결정(ADR), 인프라 주소, 고객·회사 맥락.
-- 배포 문서에는 내부 IP·호스트를 쓰지 않는다. `$LOCAL_LLM_BASE_URL` 같은 변수로 쓴다.
+## 문서 위치
+- `docs/` = 배포 문서(공개), `internal/` = 내부 문서(비공개 저장소 `YEUNU/Homefield-internal` 클론). 기준: `docs/RULES.md` §1.1.
+- `internal/`이 없으면: `git clone https://github.com/YEUNU/Homefield-internal.git internal`
 
 ## 맥락 (먼저 읽는다)
 - **문제 정의·평가 체계 (설계 기준)**: `internal/PROBLEM.md`
@@ -22,10 +18,7 @@
 - 결정 기록: `internal/decisions/`
 
 ## 작업 규칙
-- 코드 작성·리뷰 시 `karpathy-guidelines` 스킬을 따른다.
-- 기능보다 eval을 먼저 만든다 (`eval-first` 스킬).
-- 코어는 범용 에이전트 프레임워크(LangChain 등)를 import하지 않는다.
-- 규칙은 프롬프트가 아니라 코드(정책 엔진)로 강제한다.
-- 모델 호출은 모델 독립 인터페이스를 거친다. 기본 백엔드는 로컬 LLM이다.
-- 비밀값(API 키)은 `.env`에만 둔다. 커밋하지 않는다.
-- Git: `git-workflow` 스킬과 `docs/GIT_POLICY.md`를 따른다. **공개 저장소**이다. 비밀값·고객 데이터·벤치마크 원본을 커밋하지 않는다.
+- **문서·코드·배포 규칙은 `docs/RULES.md`가 단일 원천이다.** 여기와 스킬은 그것을 가리키기만 한다.
+- 커밋 전: `uvx ruff format . && uvx ruff check . && uvx --python 3.12 pytest -q && python3 scripts/check_rules.py`
+- 내부 문서를 바꾼 뒤: `python3 scripts/check_rules.py --internal internal`
+- 관련 스킬: `karpathy-guidelines`(코드), `eval-first`(평가), `git-workflow`(배포), `decision-record`(ADR), `dataset-prep`, `local-llm`.

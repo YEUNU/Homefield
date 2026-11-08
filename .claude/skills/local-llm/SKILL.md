@@ -13,7 +13,7 @@ description: Call the on-prem LLM server configured in LOCAL_LLM_BASE_URL (OpenA
 - 키가 없으면 사용자에게 `.env`에 넣어 달라고 요청한다. 직접 만들거나 추측하지 않는다.
 
 ## 먼저 할 일
-1. `scripts/llm_check.sh`로 연결과 모델 목록을 확인한다.
+1. `scripts/check_llm.sh`로 연결과 모델 목록을 확인한다.
 2. 모델 ID는 `/v1/models` 결과에서 그대로 복사한다. 하드코딩하지 말고 설정값으로 둔다.
 3. 모델 능력(문맥 길이, 도구 지원, mode)은 `/model_group/info`로 확인한다.
 
