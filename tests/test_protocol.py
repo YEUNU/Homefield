@@ -144,3 +144,18 @@ def test_finished_episodes_for_resume(tmp_path):
         ("t", "bare", "E1", 0),
         ("t", "bare", "E1", 2),
     }  # only the earlier times run again
+
+
+def test_anchor_interpretations_map_back():
+    import sqlite3
+    from pathlib import Path
+
+    from evalkit.anchor import GOLD, INTERPRETATIONS, result_index, top3_sql, totals
+
+    con = sqlite3.connect(":memory:")
+    con.executescript(Path("tasks/anchor-revenue/data.sql").read_text())
+    assert len(INTERPRETATIONS) == 16 and totals(con)[GOLD] == 1645.0
+    index = result_index(con)
+    assert len(index) == 16  # every interpretation has a distinct top-3 result
+    gold_rows = con.execute(top3_sql(GOLD)).fetchall()
+    assert index[tuple(sorted((n, round(v, 2)) for n, v in gold_rows))] == GOLD

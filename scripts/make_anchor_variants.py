@@ -9,20 +9,16 @@ k is the number of the 16 interpretations whose October total matches the number
 the customer states (the script computes and checks it).
 """
 
-import itertools
 import json
 import sqlite3
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from evalkit.anchor import GOLD, totals  # noqa: E402
+
 BASE = ROOT / "tasks" / "anchor-revenue"
-DECISIONS = {
-    "tax": ["excl", "incl"],
-    "cancel": ["exclude", "include"],
-    "refund": ["subtract", "keep"],
-    "date": ["order_date", "paid_date"],
-}
-GOLD = ("excl", "exclude", "subtract", "order_date")
 UNKNOWN = (
     "당신은 매출이 기술적으로 어떻게 계산되는지 모른다: "
     "세금 처리, 취소 주문, 반품, 주문일과 결제일 중 어느 날짜를 쓰는지 모른다."
@@ -48,22 +44,6 @@ VARIANTS = {  # name -> (customer fact sentence, matching total range [lo, hi], 
 }
 
 
-def totals(con: sqlite3.Connection) -> dict[tuple, float]:
-    out = {}
-    for tax, cancel, refund, date in itertools.product(*DECISIONS.values()):
-        amt = f"o.total_{tax}_tax"
-        ramt = f"r.amount_{tax}_tax"
-        status = "AND o.status = 'paid'" if cancel == "exclude" else ""
-        sub = (
-            f"- COALESCE((SELECT SUM({ramt}) FROM refunds r WHERE r.order_id = o.id), 0)"
-            if refund == "subtract"
-            else ""
-        )
-        sql = f"SELECT SUM({amt} {sub}) FROM orders o WHERE o.{date} BETWEEN '2026-10-01' AND '2026-10-31' {status}"
-        out[(tax, cancel, refund, date)] = round(con.execute(sql).fetchone()[0], 2)
-    return out
-
-
 def main() -> None:
     base = json.loads((BASE / "task.json").read_text())
     con = sqlite3.connect(":memory:")
@@ -79,6 +59,8 @@ def main() -> None:
             "db_sql": "data.sql" if name == "anchor-revenue" else "../anchor-revenue/data.sql",
             "hidden": {"fact_kind": "anchor", "facts": ["지난달은 2026년 10월이다.", fact, UNKNOWN]},
             "anchor_k": expected_k,
+            "anchor_range": [lo, hi],
+            "anchor_gold": list(GOLD),
             "notes": (
                 f"4 decisions -> 16 interpretations. {expected_k} interpretation(s) match "
                 f"the customer's number (total range {lo}-{hi}). "
