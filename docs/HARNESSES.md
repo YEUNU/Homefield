@@ -48,11 +48,15 @@ uvx --python 3.12 openhands --headless --yolo --override-with-envs --exit-withou
 ```
 
 ## Docker
-- Colima 0.10.3 + Docker CLI 29.9.3 (Homebrew). Docker Desktop은 약관 동의가 필요해 쓰지 않았다.
-- VM: CPU 4, 메모리 8GB, 디스크 60GB. `colima start`로 켠다.
-- `docker run hello-world` 정상.
+- Docker Desktop을 쓴다 (사용자 설치, 서버 29.9.2). CLI 경로 `~/.docker/bin/docker`.
+- 처음에 임시로 쓴 Colima·lima·Homebrew docker CLI는 지웠다 (2026-11-08).
+
+## 공통 규약 (evalkit)
+- 답 제출: 작업 폴더의 답 파일. 고객 질문: `<bin>/ask_user "질문"`. 제출: `<bin>/submit_answer`.
+- 다섯 하네스 모두 이 규약으로 스모크 과제를 완료했다. 결과는 `docs/DIFFERENTIATION.md` §5.
+- 실행: `python3 -m evalkit.run --task tasks/smoke-revenue`
 
 ## 남은 확인
-1. 각 하네스에 같은 `ask_user` MCP 도구를 붙일 수 있는지 (공정성 규칙 1). mini-swe-agent는 bash 전용이라 MCP 대신 셸 명령 래퍼가 필요할 수 있다.
+1. ~~ask_user 공통화~~ → 셸 명령 규약으로 해결.
 2. BIRD-Interact 공식 기준선(H5) 실행 환경.
 3. 시험은 과제 1개, 1회 실행이다. 안정성(반복 실행 성공률)은 확인하지 않았다.

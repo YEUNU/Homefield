@@ -1,0 +1,20 @@
+{
+  "id": "smoke-revenue",
+  "request": "지난달 매출 기준 상위 3개 고객을 뽑아 주세요. 결과는 고객 이름과 매출, 두 컬럼으로 주세요.",
+  "db": "data.sqlite",
+  "db_sql": "data.sql",
+  "answer_file": "answer.sql",
+  "check": {
+    "type": "sql_result",
+    "gold_sql": "SELECT c.name, SUM(o.total_excl_tax) FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.status = 'paid' AND o.order_date BETWEEN '2026-10-01' AND '2026-10-31' GROUP BY c.id ORDER BY 2 DESC LIMIT 3"
+  },
+  "hidden": {
+    "facts": [
+      "매출은 세전 금액이다 (부가세를 빼고 본다).",
+      "취소된 주문은 매출에 넣지 않는다.",
+      "지난달은 2026년 10월 1일부터 31일까지이다."
+    ]
+  },
+  "budget": {"ask": 5, "submit": 3},
+  "notes": "모호성 2개가 결과를 바꾼다: 세전/세후(상위 3명이 바뀜), 취소 포함 여부(매출 값이 바뀜). '지난달'은 결과를 바꾸지 않는 미끼다(오늘 2026-11-08 기준 10월)."
+}

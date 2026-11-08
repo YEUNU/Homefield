@@ -1,0 +1,79 @@
+import sqlite3
+import subprocess
+
+from evalkit.check import same_rows
+from evalkit.episode import Episode
+
+TASK = {
+    "id": "t",
+    "request": "r",
+    "answer_file": "answer.sql",
+    "db": "data.sqlite",
+    "check": {"type": "sql_result", "gold_sql": "SELECT name, v FROM t WHERE v > 1"},
+    "hidden": {"facts": ["f"]},
+    "budget": {"ask": 2, "submit": 3},
+}
+
+
+def make_episode(tmp_path):
+    src = tmp_path / "src.sqlite"
+    con = sqlite3.connect(src)
+    con.executescript("CREATE TABLE t(name TEXT, v REAL); INSERT INTO t VALUES ('a',1),('b',2),('c',3);")
+    con.commit()
+    con.close()
+    ep = Episode(TASK, src, tmp_path / "ep", simulate=lambda q: f"echo:{q}")
+    ep.start()
+    return ep
+
+
+def call(path, *args):
+    return subprocess.run([str(path), *args], capture_output=True, text=True, timeout=30).stdout.strip()
+
+
+def test_same_rows_order_and_tolerance():
+    assert same_rows([("a", 1.0), ("b", 2.0)], [("b", 2.0000000001), ("a", 1)])
+    assert not same_rows([("a", 1.0)], [("a", 1.1)])
+    assert not same_rows([("a", 1.0)], [("a", 1.0), ("b", 2.0)])
+    assert not same_rows([("a", 1.0, 3)], [("a", 1.0)])
+
+
+def test_ask_budget_and_log(tmp_path):
+    ep = make_episode(tmp_path)
+    try:
+        assert call(ep.bin / "ask_user", "매출 기준?") == "echo:매출 기준?"
+        call(ep.bin / "ask_user", "두번째")
+        assert "BUDGET_EXHAUSTED" in call(ep.bin / "ask_user", "세번째")
+    finally:
+        ep.stop()
+    m = ep.metrics()
+    assert m["n_questions"] == 2
+
+
+def test_submit_reject_then_accept(tmp_path):
+    ep = make_episode(tmp_path)
+    try:
+        assert "missing" in call(ep.bin / "submit_answer")  # 답 파일 없음 → 거절
+        (ep.work / "answer.sql").write_text("SELECT name, v FROM t")
+        assert call(ep.bin / "submit_answer").startswith("REJECTED")
+        (ep.work / "answer.sql").write_text("SELECT name, v FROM t WHERE v >= 2")
+        assert call(ep.bin / "submit_answer") == "ACCEPTED"
+    finally:
+        ep.stop()
+    m = ep.metrics()
+    assert m["accepted"] is True
+    assert m["n_submissions"] == 3
+    assert m["n_rework"] == 2
+    assert m["cfc"] == {"1": 2, "3": 6, "10": 20}  # 질문 0 + r × 재작업 2
+
+
+def test_agent_cannot_corrupt_gold_db(tmp_path):
+    ep = make_episode(tmp_path)
+    try:
+        con = sqlite3.connect(ep.work / "data.sqlite")
+        con.execute("DELETE FROM t")
+        con.commit()
+        con.close()
+        (ep.work / "answer.sql").write_text("SELECT name, v FROM t WHERE v >= 2")
+        assert call(ep.bin / "submit_answer") == "ACCEPTED"  # 원본 사본으로 채점
+    finally:
+        ep.stop()
