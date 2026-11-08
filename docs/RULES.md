@@ -43,7 +43,7 @@ audience: public | internal            # docs/ is public, internal/ is internal
 ### 1.4 Language and style (based on ASD-STE100)
 - Write all repository content (code, comments, messages, docs, skills, `CLAUDE.md`) in English (ASD-STE100 Simplified Technical English).
 - Task data may contain other languages on purpose (it simulates customers).
-- Write internal documents (`internal/`) in Korean.
+- Write internal documents (`internal/`) in English too.
 - Keep identifiers, commands, and file names as they are.
 - Write one idea in each sentence. Use the active voice. Use short sentences.
 - Use the same term for the same object (§1.6).
