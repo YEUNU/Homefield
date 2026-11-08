@@ -37,7 +37,8 @@ audience: 배포 | 내부               # docs/ 는 배포, internal/ 은 내부
 ---
 ```
 - 내용을 바꾸면 `updated`를 고친다.
-- 버전 표기(v0.1 등)는 제목에 쓰지 않는다. 변경 이력은 git이 맡는다. 큰 변경은 본문 첫머리에 한 줄로 적는다.
+- **배포 문서(`docs/`, `README.md`)는 최종 상태만 쓴다.** 날짜, 경위, 변경 이력("~하기로 함", "~를 지웠다", 버전 표기)은 쓰지 않는다. 이력은 git과 `internal/`이 맡는다.
+- 날짜는 머리말 `updated`에만 둔다.
 
 ### 1.4 문체 (ASD-STE100 기반)
 - 한국어로 쓴다. 식별자·명령·파일 이름은 원문 그대로 둔다.
@@ -145,8 +146,8 @@ push, PR 생성, 태그, 릴리스, force-push, 기록 재작성, 저장소 설�
 | 린트·서식 | 로컬 CI | `ruff check`, `ruff format --check` |
 | 테스트 | 로컬 CI | `pytest` |
 | push 전 전체 검사 | pre-push hook | `.githooks/pre-push` → `scripts/ci.sh` |
-| `main` 직접 push 금지, PR·`local-ci` 필수, force-push·삭제 금지 | GitHub 브랜치 보호 | 설정됨 (2026-11-08). 관리자 우회는 비상용으로 열어 둠 |
-| 문체·근거 표기 | 사람 리뷰 | - |
+| `main` 직접 push 금지, PR·`local-ci` 필수, force-push·삭제 금지 | GitHub 브랜치 보호 | 설정됨. 관리자 우회는 비상용 |
+| 문체·근거 표기, 배포 문서의 이력 금지 | 사람 리뷰, 규칙 검사(본문 날짜) | `scripts/check_rules.py` |
 
 ### 4.1 로컬 CI
 - CI는 GitHub Actions가 아니라 개발자 PC에서 돈다 (`scripts/ci.sh`). 검사: ruff check, ruff format, pytest, 규칙 검사, gitleaks.
