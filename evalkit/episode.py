@@ -18,7 +18,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from evalkit.check import check_sql_result
+from evalkit.check import check_answer
 
 CFC_WEIGHTS = (1, 3, 10)
 # Markers of "I don't know" answers. The customer simulator answers in the question's language.
@@ -51,15 +51,19 @@ print(json.load(urllib.request.urlopen(req, timeout=600))["reply"])
 
 
 class Episode:
-    def __init__(self, task: dict, db_source: Path, root: Path, simulate):
+    def __init__(self, task: dict, db_source: Path | None, root: Path, simulate, files: tuple[Path, ...] = ()):
         self.task, self.simulate = task, simulate
         self.root = Path(root)
         self.work, self.bin, self.private = self.root / "work", self.root / "bin", self.root / "private"
         for d in (self.work, self.bin, self.private):
             d.mkdir(parents=True, exist_ok=True)
-        shutil.copy(db_source, self.work / task["db"])
-        self.gold_db = self.private / task["db"]
-        shutil.copy(db_source, self.gold_db)
+        self.gold_db = None
+        if db_source is not None:
+            shutil.copy(db_source, self.work / task["db"])
+            self.gold_db = self.private / task["db"]
+            shutil.copy(db_source, self.gold_db)
+        for f in files:  # other source files (CSV, documents) go to the work folder only
+            shutil.copy(f, self.work / Path(f).name)
         self.events: list[dict] = []
         self.session = secrets.token_hex(16)
         self._lock = threading.Lock()
@@ -129,11 +133,11 @@ class Episode:
             if self._count("submit") >= self.task["budget"]["submit"]:
                 return "BUDGET_EXHAUSTED: no more submissions. Stop now."
             answer = self.work / self.task["answer_file"]
-            ok, error_kind, preview = check_sql_result(answer, self.gold_db, self.task["check"])
+            ok, error_kind, preview = check_answer(answer, self.gold_db, self.task["check"])
             # Keep the submission and result in the log only, for post-hoc analysis
             submitted = answer.read_text()[:4000] if answer.exists() else None
             self._log(kind="submit", ok=ok, error_kind=error_kind, result=preview, answer=submitted)
-            # Give only what a real customer gives: no remaining count and no SQL error text.
+            # Give only what a real customer gives: no remaining count and no error text.
             return "ACCEPTED" if ok else "REJECTED: the customer says this result is not what they need."
 
     # --- metrics ---
@@ -159,7 +163,7 @@ class Episode:
             "n_submissions": len(subs),
             "n_rework": n_rework,
             "n_rework_interp": sum(1 for e in subs if e.get("error_kind") == "wrong_result"),
-            "n_rework_error": sum(1 for e in subs if e.get("error_kind") in ("missing", "sql_error")),
+            "n_rework_error": sum(1 for e in subs if e.get("error_kind") in ("missing", "sql_error", "format_error")),
             "cost": cost,
             "cfc": {str(r): n_ask + r * n_rework for r in CFC_WEIGHTS} if accepted else None,
         }

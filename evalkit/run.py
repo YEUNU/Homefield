@@ -33,13 +33,26 @@ Customer request: {request}
 The working directory contains: {files}
 
 Rules:
-1. Write your final answer as ONE SQLite query in the file `{answer_file}` in the working directory.
-   The query's result is your deliverable.
+1. {answer_rule}
 2. To ask the customer a clarifying question, run this shell command: {bin}/ask_user "your question"
    Questions cost the customer's time. Ask only when needed. Budget: {ask} questions.
 3. To deliver, run this shell command: {bin}/submit_answer
-   It prints ACCEPTED or REJECTED. If REJECTED, revise the query and submit again. Budget: {submit} submissions.
+   It prints ACCEPTED or REJECTED. If REJECTED, revise the {deliverable} and submit again. Budget: {submit} submissions.
 4. Stop as soon as you see ACCEPTED, or BUDGET_EXHAUSTED for submissions.{extra}"""
+
+# Rule 1 and the deliverable noun for each check type. The sql_result text is the text of Experiments 1-2.
+ANSWER_RULES = {
+    "sql_result": (
+        "Write your final answer as ONE SQLite query in the file `{answer_file}` in the working directory.\n"
+        "   The query's result is your deliverable.",
+        "query",
+    ),
+    "exact_answer": (
+        "Write your final answer in the file `{answer_file}` in the working directory,\n"
+        "   in the answer format that the request gives.",
+        "answer",
+    ),
+}
 
 # Prompt variants. E1 = give an existing harness the "ask first" policy in words only (no mechanism).
 VARIANTS = {
@@ -71,7 +84,17 @@ VARIANTS = {
 }
 
 
-def build_db(task_dir: Path, task: dict, out: Path) -> Path:
+def resolve(task_dir: Path, path: str) -> Path:
+    p = Path(path)
+    return p if p.is_absolute() else task_dir / p
+
+
+def build_db(task_dir: Path, task: dict, out: Path) -> Path | None:
+    """The source DB: built from `db_sql`, or an existing file `db_file`, or none (file-only tasks)."""
+    if "db_file" in task:
+        return resolve(task_dir, task["db_file"])
+    if "db_sql" not in task:
+        return None
     db = out / task["db"]
     con = sqlite3.connect(db)
     con.executescript((task_dir / task["db_sql"]).read_text())
@@ -84,12 +107,15 @@ def run_episode(
     task_dir: Path, task: dict, harness: str, variant: str, rep: int, model: str, timeout: int, runs: Path, src_db: Path
 ) -> dict:
     root = runs / task["id"] / f"{harness}__{variant}__r{rep}"
-    ep = Episode(task, src_db, root, simulate=make_customer(task))
+    files = tuple(resolve(task_dir, f) for f in task.get("files", []))
+    ep = Episode(task, src_db, root, simulate=make_customer(task), files=files)
     ep.start()
+    rule, deliverable = ANSWER_RULES[task["check"]["type"]]
     prompt = PROMPT.format(
         request=task["request"],
         files=", ".join(sorted(p.name for p in ep.work.iterdir())),
-        answer_file=task["answer_file"],
+        answer_rule=rule.format(answer_file=task["answer_file"]),
+        deliverable=deliverable,
         bin=ep.bin,
         ask=task["budget"]["ask"],
         submit=task["budget"]["submit"],

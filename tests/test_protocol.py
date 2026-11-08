@@ -168,3 +168,52 @@ def test_unknown_detection_korean_and_english():
     assert is_unknown("저는 매출이 기술적으로 어떻게 계산되는지 모릅니다.")
     assert is_unknown("모르겠습니다.")
     assert not is_unknown("매출 합계는 1,645입니다.")
+
+
+def test_exact_answer_values():
+    from evalkit.check import parse_pairs, value_eq
+
+    assert parse_pairs("@mean_fare[34.65], @fit[poor fit]") == {"mean_fare": "34.65", "fit": "poor fit"}
+    assert value_eq("34.6512", "34.65") and not value_eq("34.66", "34.65")  # gold precision
+    assert value_eq("3", "3.0") and value_eq("Poor Fit ", "poor fit") and not value_eq("good", "poor")
+
+
+def test_file_task_exact_answer(tmp_path):
+    csv = tmp_path / "t.csv"
+    csv.write_text("a\n1\n2\n")
+    task = {
+        **TASK,
+        "answer_file": "answer.txt",
+        "check": {"type": "exact_answer", "answers": [["mean", "1.50"], ["n", "2"]]},
+    }
+    del task["db"]
+    ep = Episode(task, None, tmp_path / "ep", simulate=lambda q: "", files=(csv,))
+    ep.start()
+    try:
+        assert (ep.work / "t.csv").exists() and not any(ep.private.iterdir())  # source in work only
+        (ep.work / "answer.txt").write_text("no pairs here")
+        assert call(ep.bin / "submit_answer").startswith("REJECTED")  # format error
+        (ep.work / "answer.txt").write_text("@mean[1.5] @n[2] @extra[x]")
+        assert call(ep.bin / "submit_answer") == "ACCEPTED"
+    finally:
+        ep.stop()
+    m = ep.metrics()
+    assert m["n_rework_error"] == 1 and m["n_rework_interp"] == 0
+
+
+def test_answer_rule_for_each_check_type():
+    from evalkit.run import ANSWER_RULES, PROMPT, VARIANTS
+
+    for kind, (rule, noun) in ANSWER_RULES.items():
+        text = PROMPT.format(
+            request="r",
+            files="f",
+            answer_rule=rule.format(answer_file="a"),
+            deliverable=noun,
+            bin="/b",
+            ask=0,
+            submit=2,
+            extra=VARIANTS["E0"],
+        )
+        assert "`a`" in text and f"revise the {noun}" in text, kind
+    assert "ONE SQLite query" in ANSWER_RULES["sql_result"][0]
