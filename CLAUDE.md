@@ -7,7 +7,7 @@
 
 ## Where documents live
 - `docs/` = deployment docs (public). `internal/` = internal docs (a clone of the private repo `YEUNU/Homefield-internal`). Rule: `docs/RULES.md` §1.1.
-- **All repository content is in English** (code, comments, messages, docs, skills, `CLAUDE.md`; ASD-STE100). Task data may contain Korean on purpose (it simulates customers). Internal docs (`internal/`, a separate private repo) are in Korean for now. Reply to the user in Korean.
+- **All repository content is in English** (code, comments, messages, docs, skills, `CLAUDE.md`; ASD-STE100). Task data may contain Korean on purpose (it simulates customers). Internal docs (`internal/`, a separate private repo) are also in English. Reply to the user in Korean.
 - If `internal/` is missing: `git clone https://github.com/YEUNU/Homefield-internal.git internal`
 
 ## Context (read first)
