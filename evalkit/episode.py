@@ -21,11 +21,13 @@ from pathlib import Path
 from evalkit.check import check_sql_result
 
 CFC_WEIGHTS = (1, 3, 10)
-UNKNOWN_REPLY = "I don't know."  # fixed reply the customer simulator uses for questions outside the facts
+# Markers of "I don't know" answers. The customer simulator answers in the question's language.
+UNKNOWN_MARKS = ("don't know", "do not know", "모르", "모릅")
 
 
 def is_unknown(answer: str) -> bool:
-    return UNKNOWN_REPLY.lower() in answer.lower()
+    low = answer.lower()
+    return any(mark in low for mark in UNKNOWN_MARKS)
 
 
 def guess_baseline(n_interpretations: int, submit_budget: int) -> dict:

@@ -24,6 +24,8 @@ UNKNOWN = (
     "세금 처리, 취소 주문, 반품, 주문일과 결제일 중 어느 날짜를 쓰는지 모른다."
 )
 
+SUBMIT_BUDGET = {"anchor-revenue-k4": 4}  # k4: 4 candidates remain, so 4 submissions give chance level 1.0
+
 VARIANTS = {  # name -> (customer fact sentence, matching total range [lo, hi], expected k)
     "anchor-revenue": ("매달 받는 매출 보고서에서 2026년 10월 전체 고객 매출 합계는 1,645이다.", (1645, 1645), 1),
     "anchor-revenue-k2": (
@@ -58,6 +60,7 @@ def main() -> None:
             "id": name,
             "db_sql": "data.sql" if name == "anchor-revenue" else "../anchor-revenue/data.sql",
             "hidden": {"fact_kind": "anchor", "facts": ["지난달은 2026년 10월이다.", fact, UNKNOWN]},
+            "budget": {**base["budget"], "submit": SUBMIT_BUDGET.get(name, base["budget"]["submit"])},
             "anchor_k": expected_k,
             "anchor_range": [lo, hi],
             "anchor_gold": list(GOLD),
