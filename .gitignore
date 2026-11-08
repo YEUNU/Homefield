@@ -1,0 +1,8 @@
+.env
+data/raw/
+data/processed/
+evals/results/
+__pycache__/
+.venv/
+runs/
+internal/

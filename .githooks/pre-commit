@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# 공개 저장소 보호: 비밀값·데이터 파일 커밋 차단.
+set -euo pipefail
+fail=0
+files=$(git diff --cached --name-only --diff-filter=ACM)
+for f in $files; do
+  case "$f" in
+    .env|*/.env|.env.*) [ "$f" = ".env.example" ] || { echo "차단: $f (비밀 파일)"; fail=1; } ;;
+    data/*) echo "차단: $f (data/는 커밋 금지)"; fail=1 ;;
+    *.pem|*.key|*.p12) echo "차단: $f (키 파일)"; fail=1 ;;
+  esac
+done
+# 내용 검사: 흔한 키 패턴
+scan=$(echo "$files" | grep -v "^\.githooks/" || true)
+if [ -n "$scan" ] && git diff --cached -U0 -- $scan 2>/dev/null | grep -E '^\+' | grep -nE '(sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{30,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|LOCAL_LLM_API_KEY=.+)'; then
+  echo "차단: 비밀값으로 보이는 문자열이 있다."; fail=1
+fi
+python3 scripts/check_rules.py --staged || fail=1
+if command -v gitleaks >/dev/null; then gitleaks protect --staged --no-banner || fail=1; fi
+exit $fail
