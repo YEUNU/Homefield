@@ -125,3 +125,18 @@ def test_guess_baseline():
     assert b["p_success"] == 0.75
     assert b["cfc_given_success"] == {"1": 1.0, "3": 3.0, "10": 10.0}
     assert guess_baseline(2, 3)["p_success"] == 1.0
+
+
+def test_finished_episodes_for_resume(tmp_path):
+    import json
+
+    from evalkit.run import finished_episodes
+
+    f = tmp_path / "r.jsonl"
+    rows = [
+        {"ts": "2026-01-01T10:00:00", "valid": True, "task_id": "t", "harness": "bare", "variant": "E1", "repeat": 0},
+        {"ts": "2026-01-01T09:00:00", "valid": True, "task_id": "t", "harness": "bare", "variant": "E1", "repeat": 1},
+        {"ts": "2026-01-01T10:00:00", "valid": False, "task_id": "t", "harness": "bare", "variant": "E1", "repeat": 2},
+    ]
+    f.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    assert finished_episodes(f, "2026-01-01T09:30:00") == {("t", "bare", "E1", 0)}  # 이전 시각·무효는 다시 돈다

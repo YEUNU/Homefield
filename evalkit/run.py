@@ -129,6 +129,18 @@ def run_episode(
     }
 
 
+def finished_episodes(results: Path, since: str) -> set[tuple]:
+    """결과 파일에서 since 이후 기록된 유효 에피소드의 (과제, 하네스, 변형, 반복) 집합."""
+    if not results.exists():
+        return set()
+    done = set()
+    for line in results.read_text().splitlines():
+        r = json.loads(line)
+        if r.get("ts", "") >= since and r.get("valid") and "harness" in r:
+            done.add((r["task_id"], r["harness"], r["variant"], r["repeat"]))
+    return done
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", required=True, help="쉼표로 여러 개")
@@ -138,6 +150,7 @@ def main():
     ap.add_argument("--variant", default="E0", help="쉼표로 여러 개: E0,E1")
     ap.add_argument("--repeat", type=int, default=1)
     ap.add_argument("--jobs", type=int, default=1, help="동시에 돌릴 에피소드 수")
+    ap.add_argument("--resume", default="", help="이 시각(ISO) 이후 결과 파일에 있는 유효 에피소드는 건너뛴다")
     args = ap.parse_args()
 
     runs_root = Path(os.environ.get("HF_RUNS_DIR", Path(tempfile.gettempdir()) / "homefield-runs"))
@@ -160,6 +173,10 @@ def main():
         for v in args.variant.split(",")
         for h in args.harness.split(",")
     ]
+    if args.resume:
+        done = finished_episodes(out, args.resume)
+        jobs = [j for j in jobs if (j[1]["id"], j[3], j[4], j[5]) not in done]
+        print(f"resume: {len(done)} finished episodes skipped, {len(jobs)} to run", flush=True)
     lock = threading.Lock()
 
     def one(job):

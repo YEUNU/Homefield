@@ -61,6 +61,8 @@ cp .env.example .env    # LOCAL_LLM_BASE_URL, LOCAL_LLM_API_KEY
 python3 -m evalkit.run --task tasks/smoke-revenue --harness claude,codex,opencode,mini,openhands --variant E0,E1 --repeat 3
 python3 -m evalkit.report evals/results/<날짜>.jsonl --task tasks/smoke-revenue
 ```
+- 여러 과제는 `--task a,b`로 준다. `--jobs N`은 에피소드 N개를 동시에 돌린다 (공용 LLM 서버면 실행 시간을 보며 조절한다).
+- 중단된 실험은 같은 명령에 `--resume <시작 시각>`을 붙여 이어서 돌린다. 그 시각 이후 결과 파일에 있는 유효 에피소드는 건너뛴다.
 - 결과: `evals/results/<날짜>.jsonl` (git 제외)
 - 에피소드 기록: `$HF_RUNS_DIR` (기본: 임시 폴더/homefield-runs)
 - 하네스 연결 방법: `docs/HARNESSES.md`
