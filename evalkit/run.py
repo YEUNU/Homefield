@@ -33,7 +33,16 @@ Rules:
    Questions cost the customer's time. Ask only when needed. Budget: {ask} questions.
 3. To deliver, run this shell command: {bin}/submit_answer
    It prints ACCEPTED or REJECTED. If REJECTED, revise the query and submit again. Budget: {submit} submissions.
-4. Stop as soon as you see ACCEPTED, or BUDGET_EXHAUSTED for submissions."""
+4. Stop as soon as you see ACCEPTED, or BUDGET_EXHAUSTED for submissions.{extra}"""
+
+# 프롬프트 변형. E1 = 기존 하네스에 "먼저 물어라" 정책을 말로만 준다 (메커니즘 없이).
+VARIANTS = {
+    "E0": "",
+    "E1": """
+5. Before writing the query, list the interpretations of the request that would change the result.
+   Ask the customer about each such interpretation before your first submission. Do not guess them.
+   For any interpretation you did not confirm, state your assumption in a SQL comment in the answer file.""",
+}
 
 
 def build_db(task_dir: Path, task: dict, out: Path) -> Path:
@@ -45,13 +54,15 @@ def build_db(task_dir: Path, task: dict, out: Path) -> Path:
     return db
 
 
-def run_one(task_dir: Path, task: dict, harness: str, model: str, timeout: int, runs: Path, src_db: Path) -> dict:
-    root = runs / f"{task['id']}__{harness}"
+def run_one(task_dir: Path, task: dict, harness: str, variant: str, rep: int, model: str, timeout: int,
+            runs: Path, src_db: Path) -> dict:
+    root = runs / f"{task['id']}__{harness}__{variant}__r{rep}"
     ep = Episode(task, src_db, root, simulate=make_customer(task))
     ep.start()
     prompt = PROMPT.format(
         request=task["request"], files=", ".join(sorted(p.name for p in ep.work.iterdir())),
         answer_file=task["answer_file"], bin=ep.bin, ask=task["budget"]["ask"], submit=task["budget"]["submit"],
+        extra=VARIANTS[variant],
     )
     cmd, extra = ADAPTERS[harness](ep, prompt, model, llm.load_env())
     env = {**os.environ, **extra, "PATH": f"{ep.bin}:{os.environ['PATH']}"}
@@ -68,7 +79,8 @@ def run_one(task_dir: Path, task: dict, harness: str, model: str, timeout: int, 
     latency = round(time.time() - t0, 1)
     ep.stop()
     return {
-        "case_id": task["id"], "variant": harness, "model": model, "ts": datetime.now().isoformat(timespec="seconds"),
+        "case_id": task["id"], "variant": harness, "prompt_variant": variant, "repeat": rep, "model": model,
+        "ts": datetime.now().isoformat(timespec="seconds"),
         **ep.metrics(), "success": ep.accepted(), "tokens_in": None, "tokens_out": None, "silent_error": None,
         "latency_s": latency, "notes": note, "episode_dir": str(root),
     }
@@ -80,6 +92,8 @@ def main():
     ap.add_argument("--harness", default=",".join(ADAPTERS))
     ap.add_argument("--model", default=llm.DEFAULT_MODEL)
     ap.add_argument("--timeout", type=int, default=900)
+    ap.add_argument("--variant", default="E0", help="쉼표로 여러 개: E0,E1")
+    ap.add_argument("--repeat", type=int, default=1)
     args = ap.parse_args()
 
     task_dir = Path(args.task)
@@ -91,12 +105,16 @@ def main():
     results.mkdir(parents=True, exist_ok=True)
     out = results / f"{datetime.now():%Y-%m-%d}.jsonl"
 
-    for h in args.harness.split(","):
-        row = run_one(task_dir, task, h, args.model, args.timeout, runs, src_db)
-        with open(out, "a") as f:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
-        print(f"{h:10s} success={row['success']!s:5s} q={row['n_questions']} sub={row['n_submissions']} "
-              f"rework={row['n_rework']} cfc={row['cfc']} {row['latency_s']}s {row['notes']}", flush=True)
+    # 반복을 바깥 고리로 둔다: 서버 상태가 시간에 따라 바뀌어도 하네스·변형에 고르게 퍼진다.
+    for rep in range(args.repeat):
+        for v in args.variant.split(","):
+            for h in args.harness.split(","):
+                row = run_one(task_dir, task, h, v, rep, args.model, args.timeout, runs, src_db)
+                with open(out, "a") as f:
+                    f.write(json.dumps(row, ensure_ascii=False) + "\n")
+                print(f"r{rep} {v} {h:10s} success={row['success']!s:5s} q={row['n_questions']} "
+                      f"unk={row['n_unknown']} sub={row['n_submissions']} rework={row['n_rework']} "
+                      f"cfc={row['cfc']} {row['latency_s']}s {row['notes']}", flush=True)
     print(f"results: {out}\nepisodes: {runs}")
 
 

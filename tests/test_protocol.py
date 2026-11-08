@@ -52,9 +52,12 @@ def test_ask_budget_and_log(tmp_path):
 def test_submit_reject_then_accept(tmp_path):
     ep = make_episode(tmp_path)
     try:
-        assert "missing" in call(ep.bin / "submit_answer")  # 답 파일 없음 → 거절
-        (ep.work / "answer.sql").write_text("SELECT name, v FROM t")
-        assert call(ep.bin / "submit_answer").startswith("REJECTED")
+        assert call(ep.bin / "submit_answer").startswith("REJECTED")  # 답 파일 없음 → 거절
+        (ep.work / "answer.sql").write_text("SELECT nope FROM t")  # SQL 오류
+        reply = call(ep.bin / "submit_answer")
+        # 실제 고객이 주지 않는 정보(남은 횟수, 오류 내용)는 새지 않아야 한다
+        assert reply.startswith("REJECTED") and "left" not in reply and "nope" not in reply
+        assert ep.events[-1]["detail"].startswith("sql error")  # 사유는 로그에만
         (ep.work / "answer.sql").write_text("SELECT name, v FROM t WHERE v >= 2")
         assert call(ep.bin / "submit_answer") == "ACCEPTED"
     finally:
@@ -77,3 +80,23 @@ def test_agent_cannot_corrupt_gold_db(tmp_path):
         assert call(ep.bin / "submit_answer") == "ACCEPTED"  # 원본 사본으로 채점
     finally:
         ep.stop()
+
+
+def test_unknown_answers_are_counted(tmp_path):
+    src = tmp_path / "src.sqlite"
+    sqlite3.connect(src).executescript("CREATE TABLE t(name TEXT, v REAL);")
+    ep = Episode(TASK, src, tmp_path / "ep", simulate=lambda q: "I don't know.")
+    ep.start()
+    try:
+        call(ep.bin / "ask_user", "아무 질문")
+    finally:
+        ep.stop()
+    assert ep.metrics()["n_unknown"] == 1
+
+
+def test_guess_baseline():
+    from evalkit.episode import guess_baseline
+    b = guess_baseline(4, 3)
+    assert b["p_success"] == 0.75
+    assert b["cfc_given_success"] == {"1": 1.0, "3": 3.0, "10": 10.0}
+    assert guess_baseline(2, 3)["p_success"] == 1.0

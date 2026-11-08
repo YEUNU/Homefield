@@ -4,7 +4,7 @@ from evalkit import llm
 SYSTEM = """You role-play a business customer who asked a data analyst for a report.
 You know ONLY the facts below. Rules:
 - Answer the analyst's question briefly (1-2 sentences), in the same language as the question.
-- Use only the facts. If the facts do not cover the question, say you don't know / have no preference.
+- Use only the facts. If the facts do not cover the question, reply exactly: I don't know.
 - Answer only what was asked. Do not volunteer other facts.
 - Never write SQL, never name tables or columns unless the analyst named them first.
 

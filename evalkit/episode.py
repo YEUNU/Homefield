@@ -19,6 +19,19 @@ from pathlib import Path
 from evalkit.check import check_sql_result
 
 CFC_WEIGHTS = (1, 3, 10)
+UNKNOWN_REPLY = "I don't know."  # 고객 시뮬레이터가 사실 밖 질문에 쓰는 고정 문구
+
+
+def is_unknown(answer: str) -> bool:
+    return UNKNOWN_REPLY.lower() in answer.lower()
+
+
+def guess_baseline(n_interpretations: int, submit_budget: int) -> dict:
+    """해석을 균등하게, 중복 없이 추측할 때의 기준선 (질문 0회)."""
+    tries = min(n_interpretations, submit_budget)
+    p = tries / n_interpretations
+    rework = (tries - 1) / 2  # 성공했을 때 앞선 실패 수의 기댓값
+    return {"p_success": round(p, 3), "cfc_given_success": {str(r): round(r * rework, 2) for r in CFC_WEIGHTS}}
 
 SHIM = """#!/usr/bin/env python3
 import json, sys, urllib.request
@@ -101,7 +114,7 @@ class Episode:
                 return "BUDGET_EXHAUSTED: no more questions allowed. Decide yourself."
         answer = self.simulate(question)
         with self._lock:
-            self._log(kind="ask", question=question, answer=answer)
+            self._log(kind="ask", question=question, answer=answer, unknown=is_unknown(answer))
         return answer
 
     def _submit(self) -> str:
@@ -111,11 +124,9 @@ class Episode:
             if self._count("submit") >= self.task["budget"]["submit"]:
                 return "BUDGET_EXHAUSTED: no more submissions. Stop now."
             ok, detail = check_sql_result(self.work / self.task["answer_file"], self.gold_db, self.task["check"])
-            self._log(kind="submit", ok=ok, detail=detail)
-            if ok:
-                return "ACCEPTED"
-            left = self.task["budget"]["submit"] - self._count("submit")
-            return f"REJECTED: the customer says this result is not what they need. {detail} (submissions left: {left})".strip()
+            self._log(kind="submit", ok=ok, detail=detail)  # 상세 사유는 로그에만 남긴다
+            # 실제 고객이 주는 정보만 준다: 남은 횟수·SQL 오류 내용은 알려 주지 않는다.
+            return "ACCEPTED" if ok else "REJECTED: the customer says this result is not what they need."
 
     # --- 지표 ---
     def accepted(self) -> bool:
@@ -129,6 +140,7 @@ class Episode:
         return {
             "accepted": accepted,
             "n_questions": n_ask,
+            "n_unknown": sum(1 for e in self.events if e["kind"] == "ask" and e.get("unknown")),
             "n_submissions": len(subs),
             "n_rework": n_rework,
             "cfc": {str(r): n_ask + r * n_rework for r in CFC_WEIGHTS} if accepted else None,
