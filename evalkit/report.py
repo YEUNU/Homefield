@@ -2,7 +2,7 @@
 
     python3 -m evalkit.report evals/results/<날짜>.jsonl --task tasks/anchor-revenue [--since 2026-11-08T18:00]
 
-- 무효 에피소드(질문·제출이 모두 0)는 따로 세고 통계에서 뺀다.
+- 질문·제출 없이 끝난 에피소드(행동 없음)도 실패로 포함하고, 그 수를 따로 보인다.
 - 수락률은 Wilson 95% 구간, 비용은 실패 포함 평균 ± 95% 구간(정규 근사)으로 낸다.
 """
 
@@ -23,7 +23,7 @@ def normalize(row: dict, budget: dict | None) -> dict:
     if "prompt_variant" in row:  # 옛 형식에서 "variant"는 하네스였다
         row = {**row, "harness": row.pop("variant")}
     row = {LEGACY_KEYS.get(k, k): v for k, v in row.items()}
-    row.setdefault("valid", row.get("n_questions", 0) + row.get("n_submissions", 0) > 0)
+    row.setdefault("acted", row.get("valid", row.get("n_questions", 0) + row.get("n_submissions", 0) > 0))
     if "cost" not in row and budget:  # 옛 행: 실패 포함 비용을 다시 계산
         row["cost"] = {
             str(r): (row["n_questions"] + r * row["n_rework"])
@@ -70,11 +70,14 @@ def main():
         groups[(r["variant"], r["harness"])].append(r)
 
     cost_cols = " | ".join(f"비용 r={w}" for w in CFC_WEIGHTS)
-    head = f"| 변형 | 하네스 | n | 무효 | 수락률 [95% 구간] | 질문 | 모름 | 재작업 해석/오류 | {cost_cols} | 시간(s) |"
+    head = (
+        "| 변형 | 하네스 | n | 행동 없음 | 수락률 [95% 구간] | 질문 | 모름 | 재작업 해석/오류 | "
+        f"{cost_cols} | 시간(s) |"
+    )
     print(head)
     print("|" + "---|" * (head.count("|") - 1))
     for (variant, harness), all_rows in sorted(groups.items()):
-        rs = [r for r in all_rows if r["valid"]]
+        rs = all_rows  # 행동 없이 끝난 에피소드도 실패로 포함한다
         if not rs:
             print(
                 f"| {variant} | {harness} | 0 | {len(all_rows)} | - | - | - | - |" + " - |" * len(CFC_WEIGHTS) + " - |"
@@ -86,7 +89,7 @@ def main():
             variant,
             harness,
             str(len(rs)),
-            str(len(all_rows) - len(rs)),
+            str(sum(not r["acted"] for r in rs)),
             f"{k}/{len(rs)} [{lo:.2f}, {hi:.2f}]",
             f"{mean(r['n_questions'] for r in rs):.1f}",
             f"{mean(r.get('n_unknown', 0) for r in rs):.1f}",
