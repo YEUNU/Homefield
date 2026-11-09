@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local CI (docs/RULES.md §4). It runs on this PC instead of GitHub Actions.
+# Local CI (docs/RULES.md §6). It runs on this PC instead of GitHub Actions.
 #   scripts/ci.sh            checks only
 #   scripts/ci.sh --report   run the checks, then post the result as the GitHub commit status (local-ci) (after HEAD is pushed)
 set -uo pipefail
@@ -8,6 +8,7 @@ REPORT=0; [ "${1:-}" = "--report" ] && REPORT=1
 
 fail=0
 step() { echo "== $1"; shift; if "$@"; then echo "   ok"; else echo "   FAIL"; fail=1; fi; }
+step "Hooks installed"  test "$(git config core.hooksPath)" = .githooks
 step "ruff check"        uvx ruff check .
 step "ruff format"       uvx ruff format --check .
 step "pytest"            uvx --python 3.12 pytest -q

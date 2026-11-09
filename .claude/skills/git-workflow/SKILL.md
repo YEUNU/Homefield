@@ -5,12 +5,14 @@ description: Branch, commit, PR, and release rules for the Homefield repos (publ
 
 # Git Workflow
 
-Rule source: `docs/RULES.md` §3 (deployment), §1.1 (document location), §2.4 (what must not be committed). Do not repeat the rules here.
+Rule source: `docs/RULES.md` §4 (Git), §5 (release and deployment), §1.1 (document location), §2.4 (what must not be committed). Do not repeat the rules here.
 
 ## Checklist
-1. If you are on `main`, create a branch first (RULES §3.2).
+1. If you are on `main`, create a branch first (RULES §4.3). One PR holds one purpose.
 2. For a document, choose the location: public `docs/` or private `internal/` (RULES §1.1). If unsure, use `internal/`.
-3. Checks before a commit: `uvx ruff format .`, then `scripts/ci.sh`. After a push, post the `local-ci` status to the PR with `scripts/ci.sh --report` (RULES §4.1).
-4. Commit message format: RULES §3.3. If a hook blocks the commit, fix the cause. Do not bypass it with `--no-verify`.
-5. Push, PR, tag, force-push, history rewrite, and repo settings changes need user approval first (RULES §3.6).
-6. `internal/` is a separate repo. Commit and push there separately.
+3. Check the Git identity before the first commit on a machine (RULES §4.2). If it is not set, pass it with `git -c`.
+4. Checks before a commit: `uvx ruff format .`, then `scripts/ci.sh`. After a push, post the `local-ci` status to the PR with `scripts/ci.sh --report` (RULES §6.1).
+5. Commit message format: RULES §4.4. If a hook blocks the commit, fix the cause. Do not bypass it with `--no-verify`.
+6. Push, PR, merge, tag, force-push, history rewrite, and repo settings changes need user approval first, in both repositories (RULES §4.6).
+7. `internal/` is a separate repo. Commit there separately, then run `python3 scripts/check_rules.py --internal internal` (RULES §4.1).
+8. Before a tag: check the release gate (RULES §5.2).

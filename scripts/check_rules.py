@@ -1,4 +1,4 @@
-"""Machine checks for docs/RULES.md §4.
+"""Machine checks for docs/RULES.md §6.
 
 python3 scripts/check_rules.py               # all tracked files (CI)
 python3 scripts/check_rules.py --staged      # staged files only (pre-commit)
@@ -20,6 +20,11 @@ UPPER_SNAKE = re.compile(r"^[A-Z][A-Z0-9_]*\.md$")
 KEBAB = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*\.md$")
 DATE = re.compile(r"\b20\d{2}-\d{2}(-\d{2})?\b")
 ADR_NAME = re.compile(r"^\d{4}-[a-z0-9]+(-[a-z0-9]+)*\.md$")
+RULES_DOC = Path("docs/RULES.md")
+HEADING = re.compile(r"^#{2,3} (\d+(?:\.\d+)?)\.? ", re.M)
+SECTION = r"§(\d+(?:\.\d+)?)"
+# In other files: "RULES §1.2" or "`docs/RULES.md` §1.2". Inside RULES.md every "§" is a self-reference.
+RULES_REF = re.compile(r"RULES(?:\.md)?`? " + SECTION)
 
 
 def git_files(staged: bool) -> list[str]:
@@ -57,8 +62,15 @@ def check_doc(path: Path, audience: str, statuses: set[str], name_re: re.Pattern
     return errs
 
 
+def bad_section_refs(text: str, sections: set[str], own: bool) -> list[str]:
+    """Section numbers that the text cites from RULES.md and that RULES.md does not have."""
+    refs = re.findall(SECTION, text) if own else RULES_REF.findall(text)
+    return sorted({r for r in refs if r not in sections})
+
+
 def check_public(files: list[str]) -> list[str]:
     errs = []
+    sections = set(HEADING.findall(RULES_DOC.read_text(encoding="utf-8"))) if RULES_DOC.is_file() else None
     for f in files:
         p = Path(f)
         if f.startswith("internal/"):
@@ -73,6 +85,9 @@ def check_public(files: list[str]) -> list[str]:
         for n, line in enumerate(text.splitlines(), 1):
             if PRIVATE_IP.search(line):
                 errs.append(f"{f}:{n}: private IP not allowed. Use an environment variable (RULES §1.7)")
+        if sections is not None:
+            for ref in bad_section_refs(text, sections, own=p == RULES_DOC):
+                errs.append(f"{f}: RULES §{ref} does not exist (RULES §1.8)")
         if p.parent == Path("docs") and p.suffix == ".md" and p.name != "README.md":
             errs += check_doc(p, "public", DOC_STATUS, UPPER_SNAKE)
         if (p.parent == Path("docs") or f == "README.md") and p.suffix == ".md":

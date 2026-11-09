@@ -32,6 +32,7 @@ audience: internal
 ```
 
 ## Rules
+- Name and front matter: `docs/RULES.md` §1.2, §1.3.
 - Set the status to `assumed` for a choice the user did not confirm. (Same principle as the uncertainty ledger.)
 - Add a source (paper or doc link) to each basis. Mark numbers that nobody reproduced as "(unreproduced)".
 - If you reverse an existing decision, create a new document and set the old document's status to `superseded`.

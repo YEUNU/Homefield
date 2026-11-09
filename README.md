@@ -11,7 +11,7 @@ This repository has two parts:
 - Evaluation protocol: [docs/EVALUATION.md](docs/EVALUATION.md)
 - Connecting comparison harnesses: [docs/HARNESSES.md](docs/HARNESSES.md)
 - Test datasets: [docs/DATASETS.md](docs/DATASETS.md)
-- Contribution and Git policy: [docs/RULES.md](docs/RULES.md)
+- Rules for documents, code, experiments, Git, and release: [docs/RULES.md](docs/RULES.md)
 
 ## Getting started
 ```bash
