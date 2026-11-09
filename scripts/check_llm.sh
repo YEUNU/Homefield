@@ -7,6 +7,10 @@ cd "$(dirname "$0")/.."
 if [ -z "${LOCAL_LLM_API_KEY:-}" ]; then
   echo "LOCAL_LLM_API_KEY is not set. Copy .env.example to .env and add the key." >&2; exit 1
 fi
+# Python's urllib needs a scheme, and the client appends paths to .../v1. curl accepts less, so check here.
+if ! [[ "$LOCAL_LLM_BASE_URL" =~ ^https?://[^/]+(/.*)?/v1$ ]]; then
+  echo "LOCAL_LLM_BASE_URL must start with http:// or https:// and end with /v1 (for example http://<host>/v1)." >&2; exit 1
+fi
 auth=(-H "Authorization: Bearer $LOCAL_LLM_API_KEY")
 echo "== models"
 curl -sf -m 10 "${auth[@]}" "$LOCAL_LLM_BASE_URL/models" | python3 -c 'import json,sys; [print(m["id"]) for m in json.load(sys.stdin)["data"]]'

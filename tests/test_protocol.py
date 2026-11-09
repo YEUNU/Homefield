@@ -243,3 +243,85 @@ def test_stop_deletes_copied_files(tmp_path):
     ep.start()
     ep.stop()
     assert not (ep.work / "t.csv").exists() and csv.exists()
+
+
+SLOW_SQL = "WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c) SELECT count(*) FROM c"
+
+
+def test_slow_answer_sql_is_rejected_within_the_limit(tmp_path):
+    import time
+
+    from evalkit.check import check_sql_result
+
+    ep = make_episode(tmp_path)
+    ep.stop()
+    answer = tmp_path / "answer.sql"
+    answer.write_text(SLOW_SQL)  # never ends without a limit
+    t0 = time.monotonic()
+    ok, kind, preview = check_sql_result(answer, tmp_path / "src.sqlite", TASK["check"], timeout_s=0.3)
+    assert time.monotonic() - t0 < 5
+    assert (ok, kind) == (False, "sql_error") and "timeout" in preview
+
+
+def test_gold_sql_runs_once_per_episode(tmp_path, monkeypatch):
+    from evalkit import check
+
+    gold_runs = []
+    real = check.run_sql
+
+    def counting(db, sql, *a, **kw):
+        if sql == TASK["check"]["gold_sql"]:
+            gold_runs.append(sql)
+        return real(db, sql, *a, **kw)
+
+    monkeypatch.setattr(check, "run_sql", counting)
+    ep = make_episode(tmp_path)
+    try:
+        (ep.work / "answer.sql").write_text("SELECT name, v FROM t")
+        assert call(ep.bin / "submit_answer").startswith("REJECTED")
+        assert call(ep.bin / "submit_answer").startswith("REJECTED")
+        (ep.work / "answer.sql").write_text("SELECT name, v FROM t WHERE v >= 2")
+        assert call(ep.bin / "submit_answer") == "ACCEPTED"
+    finally:
+        ep.stop()
+    assert len(gold_runs) == 1
+
+
+def test_client_that_disconnects_early_is_logged_not_raised(tmp_path, capfd):
+    import json
+    import socket
+    import struct
+    import time
+
+    ep = make_episode(tmp_path)
+    ep.simulate = lambda q: time.sleep(0.3) or "late answer"
+    try:
+        body = json.dumps({"session": ep.session, "question": "q"}).encode()
+        head = f"POST /ask HTTP/1.1\r\nHost: x\r\nContent-Length: {len(body)}\r\n\r\n".encode()
+        s = socket.create_connection(("127.0.0.1", ep._server.server_port))
+        s.sendall(head + body)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0))  # close with a reset
+        s.close()
+        deadline = time.time() + 5
+        while time.time() < deadline and not any(e["kind"] == "client_gone" for e in ep.events):
+            time.sleep(0.05)
+    finally:
+        ep.stop()
+    gone = [e for e in ep.events if e["kind"] == "client_gone"]
+    assert len(gone) == 1 and gone[0]["op"] == "ask"
+    assert "Traceback" not in capfd.readouterr().err
+    assert ep.metrics()["n_questions"] == 1  # the question was answered, so it still counts
+
+
+def test_check_llm_rejects_a_base_url_without_scheme_or_v1(tmp_path):
+    import os
+    import shutil
+    from pathlib import Path
+
+    (tmp_path / "scripts").mkdir()  # a copy outside the repo, so that the real .env is not read
+    script = shutil.copy(Path(__file__).parent.parent / "scripts" / "check_llm.sh", tmp_path / "scripts")
+    for url in ("llm.example:8000", "llm.example:8000/v1", "http://llm.example:8000"):
+        env = {"PATH": os.environ["PATH"], "LOCAL_LLM_BASE_URL": url, "LOCAL_LLM_API_KEY": "x"}
+        p = subprocess.run(["bash", script], env=env, capture_output=True, text=True, timeout=30)
+        assert p.returncode != 0 and "LOCAL_LLM_BASE_URL must" in p.stderr, url
+        assert "== models" not in p.stdout  # rejected before any network call

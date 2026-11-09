@@ -18,7 +18,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from evalkit.check import check_answer
+from evalkit import check
 
 CFC_WEIGHTS = (1, 3, 10)
 # Markers of "I don't know" answers. The customer simulator answers in the question's language.
@@ -71,10 +71,16 @@ class Episode:
         self._lock = threading.Lock()
         self._server = None
         self.t0 = None
+        self._gold = None  # gold result of a `sql_result` task, computed once in start()
 
     # --- server ---
     def start(self):
         ep = self
+        spec = self.task["check"]
+        if (
+            spec["type"] == "sql_result" and self.gold_db is not None
+        ):  # once per episode, before the agent starts: a submit runs only the answer
+            self._gold = check.run_sql(self.gold_db, spec["gold_sql"])
 
         class Handler(BaseHTTPRequestHandler):
             def log_message(self, *a):
@@ -89,11 +95,17 @@ class Episode:
                 op = self.path.strip("/")
                 reply = ep._ask(body["question"]) if op == "ask" else ep._submit()
                 data = json.dumps({"reply": reply}, ensure_ascii=False).encode()
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json")
-                self.send_header("Content-Length", str(len(data)))
-                self.end_headers()
-                self.wfile.write(data)
+                try:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Content-Length", str(len(data)))
+                    self.end_headers()
+                    self.wfile.write(data)
+                except (BrokenPipeError, ConnectionResetError):
+                    # The client left before the reply (for example, the agent's tool timeout). The ask or
+                    # submit event above still counts; this event records that the agent did not see the reply.
+                    with ep._lock:
+                        ep._log(kind="client_gone", op=op)
 
         self._server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         threading.Thread(target=self._server.serve_forever, daemon=True).start()
@@ -139,7 +151,7 @@ class Episode:
             if self._count("submit") >= self.task["budget"]["submit"]:
                 return "BUDGET_EXHAUSTED: no more submissions. Stop now."
             answer = self.work / self.task["answer_file"]
-            ok, error_kind, preview = check_answer(answer, self.gold_db, self.task["check"])
+            ok, error_kind, preview = check.check_answer(answer, self.gold_db, self.task["check"], self._gold)
             # Keep the submission and result in the log only, for post-hoc analysis
             submitted = answer.read_text()[:4000] if answer.exists() else None
             self._log(kind="submit", ok=ok, error_kind=error_kind, result=preview, answer=submitted)
