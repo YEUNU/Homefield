@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-11-08
+updated: 2026-11-10
 audience: public
 ---
 # Evaluation protocol (evalkit)
@@ -48,6 +48,8 @@ The protocol is the same in every harness that has a shell.
 - Question: `<bin>/ask_user "question"` prints the answer of the customer simulator.
 - Submission: `<bin>/submit_answer` prints `ACCEPTED` or `REJECTED`.
   - A rejection message gives only the information that a real customer gives. It does not give the remaining count or the content of an SQL error.
+  - Scoring time is limited so that the agent always gets a reply. The gold result is computed once, before the agent starts. An answer SQL that runs longer than 60 s is rejected as an SQL error (`error_kind` = `sql_error`, result `timeout after 60s` in the episode log). The limit is below the 120 s tool timeout of `bare`.
+  - If the agent's process leaves before a reply arrives, the question or submission still counts. The episode log gets an event of kind `client_gone`.
 
 The customer simulator knows only `hidden.facts`. For a question outside the facts, it answers `I don't know.` It does not know the gold SQL.
 

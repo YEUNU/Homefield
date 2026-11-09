@@ -7,13 +7,28 @@
 import math
 import re
 import sqlite3
+import time
 from pathlib import Path
 
+# Time limit for the answer SQL of one submission. It must stay well below the tool timeout of every
+# harness (the `bare` bash tool stops a command after 120 s), so that the agent always gets a reply.
+SQL_TIME_LIMIT_S = 60
 
-def run_sql(db: Path, sql: str) -> list[tuple]:
+
+def run_sql(db: Path, sql: str, timeout_s: float | None = None) -> list[tuple]:
+    """Run read-only. With `timeout_s`, stop the query after that time and raise sqlite3.OperationalError."""
     con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
     try:
-        return con.execute(sql).fetchall()
+        if timeout_s is None:
+            return con.execute(sql).fetchall()
+        deadline = time.monotonic() + timeout_s
+        con.set_progress_handler(lambda: time.monotonic() > deadline, 10_000)
+        try:
+            return con.execute(sql).fetchall()
+        except sqlite3.OperationalError as e:
+            if time.monotonic() > deadline:
+                raise sqlite3.OperationalError(f"timeout after {timeout_s:g}s") from e
+            raise
     finally:
         con.close()
 
@@ -39,17 +54,22 @@ def same_rows(got: list[tuple], gold: list[tuple], ordered: bool = False, tol: f
     return True
 
 
-def check_sql_result(answer: Path, gold_db: Path, spec: dict) -> tuple[bool, str, str | None]:
+def check_sql_result(
+    answer: Path, gold_db: Path, spec: dict, gold: list[tuple] | None = None, timeout_s: float | None = SQL_TIME_LIMIT_S
+) -> tuple[bool, str, str | None]:
     """(correct or not, rejection kind, result preview).
 
-    Rejection kind: "" | "missing" | "sql_error" | "wrong_result"."""
+    Rejection kind: "" | "missing" | "sql_error" | "wrong_result". An answer SQL that runs longer than
+    `timeout_s` is a "sql_error" with the preview "timeout after <n>s".
+    `gold`: the gold result if the caller already has it. Otherwise the gold SQL runs here."""
     if not answer.exists():
         return False, "missing", None
     try:
-        got = run_sql(gold_db, answer.read_text())
+        got = run_sql(gold_db, answer.read_text(), timeout_s)
     except sqlite3.Error as e:
         return False, "sql_error", str(e)
-    gold = run_sql(gold_db, spec["gold_sql"])
+    if gold is None:
+        gold = run_sql(gold_db, spec["gold_sql"])
     ok = same_rows(got, gold, spec.get("ordered", False))
     return ok, "" if ok else "wrong_result", repr(got[:10])
 
@@ -86,9 +106,11 @@ def check_exact_answer(answer: Path, spec: dict) -> tuple[bool, str, str | None]
     return ok, "" if ok else "wrong_result", repr(got)
 
 
-def check_answer(answer: Path, gold_db: Path | None, spec: dict) -> tuple[bool, str, str | None]:
+def check_answer(
+    answer: Path, gold_db: Path | None, spec: dict, gold: list[tuple] | None = None
+) -> tuple[bool, str, str | None]:
     if spec["type"] == "sql_result":
-        return check_sql_result(answer, gold_db, spec)
+        return check_sql_result(answer, gold_db, spec, gold)
     if spec["type"] == "exact_answer":
         return check_exact_answer(answer, spec)
     raise ValueError(f"unknown check type: {spec['type']}")
