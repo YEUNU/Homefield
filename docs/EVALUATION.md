@@ -73,7 +73,7 @@ python3 -m evalkit.report evals/results/<date>.jsonl --task tasks/smoke-revenue
 - To continue an interrupted experiment, add `--resume <start time>` to the same command. The run skips the valid episodes that are in the result file after that time.
 - `evalkit.report` prints one row for each variant × harness. The columns show the number of episodes (n), the number of no-action episodes, the acceptance rate with its 95% interval, the number of questions, the number of "I don't know" answers, the rework split into interpretation and execution errors, the cost for each r, and the time in seconds. The report prints the column names in Korean.
 - Result: `evals/results/<date>.jsonl` (excluded from git)
-- Episode records: `$HF_RUNS_DIR` (default: the temporary folder/homefield-runs)
+- Episode records: `$HF_RUNS_DIR` (default: the temporary folder/homefield-runs). When an episode ends, evalkit deletes the copied source files (DB and its SQLite side files, CSVs, documents). It keeps `events.jsonl`, `stdout.txt`, the answer file, and the other files that the agent wrote.
 - How to connect a harness: `docs/HARNESSES.md`
 
 ## 6. Harness IDs
