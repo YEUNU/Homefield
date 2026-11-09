@@ -58,7 +58,9 @@ class Episode:
         for d in (self.work, self.bin, self.private):
             d.mkdir(parents=True, exist_ok=True)
         self.gold_db = None
+        self._copies = [self.work / Path(f).name for f in files]  # deleted in stop()
         if db_source is not None:
+            self._copies += [self.work / task["db"], self.private / task["db"]]
             shutil.copy(db_source, self.work / task["db"])
             self.gold_db = self.private / task["db"]
             shutil.copy(db_source, self.gold_db)
@@ -107,6 +109,10 @@ class Episode:
             self._server.shutdown()
             self._server.server_close()
         (self.root / "events.jsonl").write_text("".join(json.dumps(e, ensure_ascii=False) + "\n" for e in self.events))
+        # Delete the source copies (a BIRD DB is up to ~600 MB). Keep the logs, the answer, and agent files.
+        for p in self._copies:
+            for side in (p, *(p.with_name(p.name + s) for s in ("-journal", "-wal", "-shm"))):
+                side.unlink(missing_ok=True)
 
     # --- behavior ---
     def _count(self, kind: str) -> int:

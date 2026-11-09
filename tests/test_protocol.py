@@ -217,3 +217,29 @@ def test_answer_rule_for_each_check_type():
         )
         assert "`a`" in text and f"revise the {noun}" in text, kind
     assert "ONE SQLite query" in ANSWER_RULES["sql_result"][0]
+
+
+def test_stop_deletes_source_copies_keeps_records(tmp_path):
+    # Each BIRD episode copied a DB of up to ~600 MB twice and never deleted it (S1' disk crash).
+    ep = make_episode(tmp_path)
+    (ep.work / "answer.sql").write_text("SELECT name, v FROM t WHERE v > 1")
+    (ep.work / "data.sqlite-journal").write_text("x")  # SQLite side file left by an agent
+    (ep.work / "notes.py").write_text("print(1)")  # agent's own work stays
+    assert call(ep.bin / "submit_answer") == "ACCEPTED"
+    ep.stop()
+    assert not (ep.work / "data.sqlite").exists()
+    assert not (ep.work / "data.sqlite-journal").exists()
+    assert not (ep.private / "data.sqlite").exists()
+    assert (ep.work / "answer.sql").exists() and (ep.work / "notes.py").exists()
+    assert (ep.root / "events.jsonl").exists()
+    assert ep.metrics()["accepted"]
+
+
+def test_stop_deletes_copied_files(tmp_path):
+    csv = tmp_path / "t.csv"
+    csv.write_text("x\n1\n")
+    task = {**TASK, "db": None, "answer_file": "answer.txt"}
+    ep = Episode(task, None, tmp_path / "ep", simulate=lambda q: "", files=(csv,))
+    ep.start()
+    ep.stop()
+    assert not (ep.work / "t.csv").exists() and csv.exists()
