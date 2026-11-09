@@ -14,12 +14,15 @@
 - **Problem definition and evaluation system (design basis)**: `internal/PROBLEM.md`
 - Project goals and decisions: `internal/HANDOFF.md`
 - Differentiation and prior work: `internal/DIFFERENTIATION.md`
+- Live plan: `internal/ROADMAP.md`. Experiment records: `internal/EXPERIMENTS.md`. Next-session prompt: `internal/NEXT_SESSION.md`
 - Evaluation protocol (public): `docs/EVALUATION.md`. Test datasets: `docs/DATASETS.md`
 - Local LLM (on-prem): `internal/LOCAL_LLM.md`
 - Decision records: `internal/decisions/`
 
 ## Working rules
-- **`docs/RULES.md` is the single source for document, code, and deployment rules.** This file and the skills only point to it.
-- Before a commit: `uvx ruff format .`, then `scripts/ci.sh`. For the PR after a push: `scripts/ci.sh --report`.
+- **`docs/RULES.md` is the single source for document, code, experiment, Git, and release rules.** This file and the skills only point to it.
+- Experiments: pre-register in `internal/EXPERIMENTS.md` before data; do not change conditions during a run (RULES §3).
+- Push, PR, merge, tag, and release need the user's approval (RULES §4.6).
+- Before a commit: `uvx ruff format .`, then `scripts/ci.sh`. For the PR after a push: `scripts/ci.sh --report`. Tests: `uvx --python 3.12 pytest -q` (not `uv run`).
 - After you change an internal doc: `python3 scripts/check_rules.py --internal internal`
 - Related skills: `karpathy-guidelines` (code), `eval-first` (evaluation), `git-workflow` (deployment), `decision-record` (ADR), `dataset-prep`, `local-llm`.

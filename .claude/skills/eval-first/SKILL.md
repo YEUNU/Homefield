@@ -16,9 +16,10 @@ Build the way to measure before you change harness behavior.
 6. **Ablation**: Turn off one component at a time and run again. Record a component with no effect as a removal candidate.
 
 ## Fields to record on each result line
-The field definitions are in `docs/EVALUATION.md` §7 (single source). The evalkit runner writes this format.
+The field definitions are in `docs/EVALUATION.md` (single source). The evalkit runner writes this format.
 
 ## Rules
+- Experiment rules (pre-registration, runs, records, task pools, claims): `docs/RULES.md` §3 (single source).
 - Use the local LLM as the default model (`local-llm` skill). Always record the model ID in the results.
 - If the sample is small (<30), write "observation" instead of a conclusion.
 - When you cite a benchmark number, also write the source paper and the setting (c-Interact / a-Interact, etc.).

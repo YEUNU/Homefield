@@ -1,7 +1,10 @@
 ## What and why
-<!-- One or two sentences -->
+<!-- One or two sentences. If this PR changes the protocol (what the agent sees or how a submission is scored), say so in the first line. -->
 
 ## Verification
-- [ ] Attach the eval result (if there is none, add the "unverified" label)
+- [ ] Local CI passes (`scripts/ci.sh`; after the push `scripts/ci.sh --report`)
+- [ ] Tests change with the behavior
+- [ ] Eval result attached, or marked "unverified"
 - [ ] No secrets, customer data, or original benchmark data
-- [ ] If this is a design decision, add a record to `internal/decisions/`
+- [ ] Protocol change: `docs/EVALUATION.md` is updated and no run is in progress
+- [ ] Design decision: record added to `internal/decisions/` (write only its number here)
