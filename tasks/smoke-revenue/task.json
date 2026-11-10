@@ -20,6 +20,6 @@
     "ask": 5,
     "submit": 3
   },
-  "notes": "Two ambiguities change the result: before/after tax (the top 3 customers change) and whether to include cancelled orders (the revenue values change). "Last month" is a decoy that does not change the result (October, as of today 2026-11-08).",
+  "notes": "Two ambiguities change the result: before/after tax (the top 3 customers change) and whether to include cancelled orders (the revenue values change). \"Last month\" is a decoy that does not change the result (October, as of today 2026-11-08).",
   "n_interpretations": 4
 }
