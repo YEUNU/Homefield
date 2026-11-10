@@ -93,6 +93,7 @@ We choose the comparison targets by recognition and role. Criteria: (1) use in t
 | | `terminus` | Terminus 2 | The official reference agent of Terminal-Bench | Unconfirmed (needs the Terminal-Bench run framework) |
 | | `bare` | Homefield M0 (`homefield/`): a model-independent tool-call loop with one shell tool | The lower bound of the harness effect and the base of our harness | Connected |
 | | `bare-fs` | `bare` with a forced final delivery: when the turn cap (40) or a 13-minute deadline is reached, the loop tells the model to stop exploring and deliver, and allows 3 more turns | Isolates termination failures from the rest of the procedure | Connected |
+| | `hf` | `bare-fs` inside gates (`homefield/gate.py`): the ask and submit commands of the prompt are replaced by gate commands. A gate keeps the budgets, refuses a result that was already rejected, refuses a submission without a stated assumption list, runs the answer read-only before it goes out, and delivers an answer that the agent wrote but did not submit. A refusal does not use the budget. It adds one line on assumptions to the prompt. Events: `<episode>/hf/events.jsonl` | Step B1 of our harness: plumbing, not a claim | Connected |
 | | `bird-official` | The official BIRD-Interact baseline | The baseline of the benchmark that the tasks come from | Not implemented |
 
 Excluded harnesses and reasons:
