@@ -2,6 +2,7 @@
 
     python3 -I scripts/make_tasks.py bird --n 20 --seed 0
     python3 -I scripts/make_tasks.py infiagent --n 10 --seed 0
+    python3 -I scripts/make_tasks.py bird-train --n 300 --seed 0   # development pool only
 
 Output: data/tasks/<dataset>-<id>-<condition>/task.json (gitignored, derived from licensed data).
 Conditions (same gold): o = facts in the request, no questions; n = request only, no questions;
@@ -55,21 +56,33 @@ def conditions(base: dict, request: str, facts: list[str], fact_text: str) -> li
 
 
 # --- BIRD Mini-Dev ---
-def bird_db(db_id: str) -> Path:
-    """Unpack one dev DB (nested zip) to data/processed/bird/<db_id>.sqlite. Only that member is read."""
-    out = PROCESSED / "bird" / f"{db_id}.sqlite"
-    if out.exists():
-        return out
-    inner = PROCESSED / "bird" / "dev_databases.zip"
+BIRD_SPLITS = {  # split: (raw zip, processed folder)
+    "dev": (RAW / "bird-mini-dev" / "dev.zip", PROCESSED / "bird"),
+    "train": (RAW / "bird-train" / "train.zip", PROCESSED / "bird-train"),
+}
+
+
+def bird_db_zip(split: str) -> Path:
+    """The nested DB archive of a split, unpacked once to data/processed/."""
+    raw, folder = BIRD_SPLITS[split]
+    inner = folder / f"{split}_databases.zip"
     if not inner.exists():
         inner.parent.mkdir(parents=True, exist_ok=True)
-        with zipfile.ZipFile(RAW / "bird-mini-dev" / "dev.zip") as z:
-            name = next(n for n in z.namelist() if n.endswith("/dev_databases.zip"))
+        with zipfile.ZipFile(raw) as z:
+            name = next(n for n in z.namelist() if n.endswith(f"/{split}_databases.zip"))
             with z.open(name) as src, open(inner, "wb") as dst:
                 shutil.copyfileobj(src, dst)
+    return inner
+
+
+def bird_db(db_id: str, split: str = "dev") -> Path:
+    """Unpack one DB to data/processed/<folder>/<db_id>.sqlite. Only that member is read."""
+    out = BIRD_SPLITS[split][1] / f"{db_id}.sqlite"
+    if out.exists():
+        return out
     if not re.fullmatch(r"\w+", db_id):
         raise ValueError(f"bad db_id: {db_id}")
-    with zipfile.ZipFile(inner) as z:
+    with zipfile.ZipFile(bird_db_zip(split)) as z:
         name = next(n for n in z.namelist() if n.endswith(f"/{db_id}/{db_id}.sqlite"))
         with z.open(name) as src, open(out, "wb") as dst:  # write to a fixed path: no path escape
             shutil.copyfileobj(src, dst)
@@ -94,6 +107,37 @@ def apply_edit(question_id, evidence: str, edits: dict[str, str]) -> tuple[str, 
     return (evidence, False) if new is None else (new, True)
 
 
+def bird_item(r: dict, qid: int, prefix: str, dataset: str, split: str, edits: dict[str, str]):
+    """(O, N, D tasks or None, skip reason, edited or not) for one BIRD row. Checks that the gold SQL is accepted."""
+    db = bird_db(r["db_id"], split)
+    gold, err = timed_sql(db, r["SQL"])
+    if err or not gold:
+        return None, err or "empty gold result", False
+    base = {
+        "id": f"{prefix}-{qid}",
+        "source": {"dataset": dataset, "question_id": qid, "db_id": r["db_id"]},
+        "db": f"{r['db_id']}.sqlite",
+        "db_file": str(db.resolve()),
+        "answer_file": "answer.sql",
+        "check": {"type": "sql_result", "gold_sql": r["SQL"]},
+        "n_interpretations": None,
+        "difficulty": r.get("difficulty"),
+    }
+    evidence, is_edited = apply_edit(qid, r["evidence"], edits)
+    tasks = conditions(base, r["question"], [evidence], f"Definitions: {evidence}")
+    if is_edited:  # N has no facts, so its file stays the same
+        for t in tasks:
+            if t["condition"] != "N":
+                t["source"] = {**t["source"], "evidence_edited": True}
+    with tempfile.TemporaryDirectory() as tmp:  # self-check: the gold SQL as an answer is accepted
+        ans = Path(tmp) / "answer.sql"
+        ans.write_text(r["SQL"])
+        ok, kind, _ = check_sql_result(ans, db, base["check"])
+    if not ok:
+        return None, f"self-check failed: {kind}", False
+    return tasks, "", is_edited
+
+
 def make_bird(n: int, seed: int, edits: dict[str, str]) -> dict:
     """BIRD dev (`dev.json` in dev.zip, 1,534 questions), not the 2026 Mini-Dev file: the 2026 update
     clarified the ambiguous output contracts inside the questions, so removing evidence leaves little ambiguity."""
@@ -111,33 +155,9 @@ def make_bird(n: int, seed: int, edits: dict[str, str]) -> dict:
     for r in pool:
         if len(picked) == n:
             break
-        db = bird_db(r["db_id"])
-        gold, err = timed_sql(db, r["SQL"])
-        if err or not gold:
-            skipped.append({"question_id": r["question_id"], "reason": err or "empty gold result"})
-            continue
-        base = {
-            "id": f"bird-{r['question_id']}",
-            "source": {"dataset": "bird-dev", "question_id": r["question_id"], "db_id": r["db_id"]},
-            "db": f"{r['db_id']}.sqlite",
-            "db_file": str(db.resolve()),
-            "answer_file": "answer.sql",
-            "check": {"type": "sql_result", "gold_sql": r["SQL"]},
-            "n_interpretations": None,
-            "difficulty": r.get("difficulty"),
-        }
-        evidence, is_edited = apply_edit(r["question_id"], r["evidence"], edits)
-        tasks = conditions(base, r["question"], [evidence], f"Definitions: {evidence}")
-        if is_edited:  # N has no facts, so its file stays the same
-            for t in tasks:
-                if t["condition"] != "N":
-                    t["source"] = {**t["source"], "evidence_edited": True}
-        with tempfile.TemporaryDirectory() as tmp:  # self-check: the gold SQL as an answer is accepted
-            ans = Path(tmp) / "answer.sql"
-            ans.write_text(r["SQL"])
-            ok, kind, _ = check_sql_result(ans, db, base["check"])
-        if not ok:
-            skipped.append({"question_id": r["question_id"], "reason": f"self-check failed: {kind}"})
+        tasks, reason, is_edited = bird_item(r, r["question_id"], "bird", "bird-dev", "dev", edits)
+        if tasks is None:
+            skipped.append({"question_id": r["question_id"], "reason": reason})
             continue
         for t in tasks:
             write_task(t)
@@ -152,6 +172,39 @@ def make_bird(n: int, seed: int, edits: dict[str, str]) -> dict:
         "edited": sorted(edited),
         "skipped": skipped,
     }
+
+
+TRAIN_MAX_DB_BYTES = 600_000_000  # the largest DB of the S1' pool is 597 MB; an episode copies the DB twice
+TRAIN_MAX_PER_DB = 6
+
+
+def make_bird_train(n: int, seed: int, edits: dict[str, str]) -> dict:
+    """BIRD train (`train.json`, 9,428 questions, 69 DBs; no DB is in dev): development pool only.
+    The file has no question id and no difficulty: the id is the 0-based index in `train.json`."""
+    if edits:
+        raise ValueError("--edits is for the bird dataset only")
+    with zipfile.ZipFile(BIRD_SPLITS["train"][0]) as z:
+        rows = json.loads(z.read(next(m for m in z.namelist() if m.endswith("/train.json"))))
+    with zipfile.ZipFile(bird_db_zip("train")) as z:
+        size = {Path(i.filename).stem: i.file_size for i in z.infolist() if i.filename.endswith(".sqlite")}
+    big = sorted(d for d in {r["db_id"] for r in rows} if size.get(d, TRAIN_MAX_DB_BYTES + 1) > TRAIN_MAX_DB_BYTES)
+    pool = [(i, r) for i, r in enumerate(rows) if (r["evidence"] or "").strip() and r["db_id"] not in big]
+    random.Random(seed).shuffle(pool)
+    picked, skipped, per_db = [], [], {}
+    for i, r in pool:
+        if len(picked) == n:
+            break
+        if per_db.get(r["db_id"], 0) == TRAIN_MAX_PER_DB:
+            continue
+        tasks, reason, _ = bird_item(r, i, "birdtrain", "bird-train", "train", {})
+        if tasks is None:
+            skipped.append({"question_id": i, "reason": reason})
+            continue
+        for t in tasks:
+            write_task(t)
+        picked.append(i)
+        per_db[r["db_id"]] = per_db.get(r["db_id"], 0) + 1
+    return {"dataset": "bird-train", "seed": seed, "excluded_big_dbs": big, "picked": picked, "skipped": skipped}
 
 
 # --- InfiAgent-DABench ---
@@ -194,7 +247,7 @@ def make_infiagent(n: int, seed: int, edits: dict[str, str]) -> dict:
     return {"dataset": "infiagent-dabench", "seed": seed, "picked": picked, "skipped": skipped}
 
 
-MAKERS = {"bird": make_bird, "infiagent": make_infiagent}
+MAKERS = {"bird": make_bird, "bird-train": make_bird_train, "infiagent": make_infiagent}
 
 
 def main():
