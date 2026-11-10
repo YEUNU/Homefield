@@ -42,6 +42,8 @@ DATASETS = {
         hf("birdsql/bird_mini_dev", explicit=["baseline_inference/mini_dev_sqlite.jsonl", "README.md"]),
         url("https://bird-bench.oss-cn-beijing.aliyuncs.com/dev.zip", "dev.zip"),  # original dev SQLite DB
     ],
+    # BIRD train: development pool only (never an evaluation set). 8.9 GB.
+    "bird-train": [url("https://bird-bench.oss-cn-beijing.aliyuncs.com/train.zip", "train.zip")],
     "ambiqt": [gh("testzer0/AmbiQT", ["benchmark/", "db-content.zip", "LICENSE.txt", "README.md"])],
     # local files
     "infiagent-dabench": [hf("infiagent/DABench", prefixes=[""])],

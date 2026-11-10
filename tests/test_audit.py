@@ -55,3 +55,50 @@ def test_make_tasks_apply_edit_replaces_only_listed_items():
     edits = {"7": "new text"}
     assert make_tasks.apply_edit(7, "old", edits) == ("new text", True)
     assert make_tasks.apply_edit(8, "old", edits) == ("old", False)
+
+
+def test_bird_train_pool_caps_items_per_db_and_skips_big_dbs(tmp_path, monkeypatch):
+    import json
+    import sqlite3
+    import zipfile
+
+    path = Path(__file__).parent.parent / "scripts" / "make_tasks.py"
+    spec = importlib.util.spec_from_file_location("make_tasks", path)
+    mt = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mt)
+
+    def db_file(name: str, n_rows: int) -> Path:
+        p = tmp_path / f"{name}.sqlite"
+        con = sqlite3.connect(p)
+        con.execute("CREATE TABLE t (x TEXT)")
+        con.executemany("INSERT INTO t VALUES (?)", [("v" * 100,)] * n_rows)
+        con.commit()
+        con.close()
+        return p
+
+    folder = tmp_path / "processed"
+    folder.mkdir()
+    with zipfile.ZipFile(folder / "train_databases.zip", "w") as z:
+        z.write(db_file("small", 3), "train_databases/small/small.sqlite")
+        z.write(db_file("big", 5000), "train_databases/big/big.sqlite")
+    rows = [
+        {"db_id": "small", "question": f"q{i}", "evidence": "x is the value", "SQL": "SELECT x FROM t"}
+        for i in range(5)
+    ]
+    rows.append({"db_id": "small", "question": "no evidence", "evidence": "", "SQL": "SELECT x FROM t"})
+    rows.append({"db_id": "big", "question": "big", "evidence": "x is the value", "SQL": "SELECT x FROM t"})
+    with zipfile.ZipFile(tmp_path / "train.zip", "w") as z:
+        z.writestr("train/train.json", json.dumps(rows))
+
+    monkeypatch.setattr(mt, "BIRD_SPLITS", {"train": (tmp_path / "train.zip", folder)})
+    monkeypatch.setattr(mt, "OUT", tmp_path / "tasks")
+    monkeypatch.setattr(mt, "TRAIN_MAX_DB_BYTES", 100_000)
+    monkeypatch.setattr(mt, "TRAIN_MAX_PER_DB", 2)
+    report = mt.make_bird_train(10, 0, {})
+
+    assert report["excluded_big_dbs"] == ["big"]
+    assert len(report["picked"]) == 2 and set(report["picked"]) <= {0, 1, 2, 3, 4}
+    made = sorted(p.name for p in (tmp_path / "tasks").iterdir())
+    assert made == sorted(f"birdtrain-{i}-{c}" for i in report["picked"] for c in "ond")
+    task = json.loads((tmp_path / "tasks" / made[0] / "task.json").read_text())
+    assert task["source"]["dataset"] == "bird-train"
