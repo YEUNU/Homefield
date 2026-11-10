@@ -88,7 +88,13 @@ def timed_sql(db: Path, sql: str) -> tuple[list[tuple] | None, str]:
         con.close()
 
 
-def make_bird(n: int, seed: int) -> dict:
+def apply_edit(question_id, evidence: str, edits: dict[str, str]) -> tuple[str, bool]:
+    """(evidence to use, edited or not). `edits` maps a question id to the full edited evidence text."""
+    new = edits.get(str(question_id))
+    return (evidence, False) if new is None else (new, True)
+
+
+def make_bird(n: int, seed: int, edits: dict[str, str]) -> dict:
     """BIRD dev (`dev.json` in dev.zip, 1,534 questions), not the 2026 Mini-Dev file: the 2026 update
     clarified the ambiguous output contracts inside the questions, so removing evidence leaves little ambiguity."""
     with zipfile.ZipFile(RAW / "bird-mini-dev" / "dev.zip") as z:
@@ -101,7 +107,7 @@ def make_bird(n: int, seed: int) -> dict:
         if r["evidence"].strip() and r["difficulty"] in ("moderate", "challenging") and r["db_id"] not in eval_only
     ]
     random.Random(seed).shuffle(pool)
-    picked, skipped = [], []
+    picked, skipped, edited = [], [], []
     for r in pool:
         if len(picked) == n:
             break
@@ -120,7 +126,12 @@ def make_bird(n: int, seed: int) -> dict:
             "n_interpretations": None,
             "difficulty": r.get("difficulty"),
         }
-        tasks = conditions(base, r["question"], [r["evidence"]], f"Definitions: {r['evidence']}")
+        evidence, is_edited = apply_edit(r["question_id"], r["evidence"], edits)
+        tasks = conditions(base, r["question"], [evidence], f"Definitions: {evidence}")
+        if is_edited:  # N has no facts, so its file stays the same
+            for t in tasks:
+                if t["condition"] != "N":
+                    t["source"] = {**t["source"], "evidence_edited": True}
         with tempfile.TemporaryDirectory() as tmp:  # self-check: the gold SQL as an answer is accepted
             ans = Path(tmp) / "answer.sql"
             ans.write_text(r["SQL"])
@@ -131,11 +142,22 @@ def make_bird(n: int, seed: int) -> dict:
         for t in tasks:
             write_task(t)
         picked.append(r["question_id"])
-    return {"dataset": "bird-dev", "seed": seed, "eval_only_dbs": eval_only, "picked": picked, "skipped": skipped}
+        if is_edited:
+            edited.append(r["question_id"])
+    return {
+        "dataset": "bird-dev",
+        "seed": seed,
+        "eval_only_dbs": eval_only,
+        "picked": picked,
+        "edited": sorted(edited),
+        "skipped": skipped,
+    }
 
 
 # --- InfiAgent-DABench ---
-def make_infiagent(n: int, seed: int) -> dict:
+def make_infiagent(n: int, seed: int, edits: dict[str, str]) -> dict:
+    if edits:
+        raise ValueError("--edits is for the bird dataset only")
     src = RAW / "infiagent-dabench"
     questions = [json.loads(x) for x in (src / "da-dev-questions.jsonl").open()]
     labels = {r["id"]: r["common_answers"] for r in map(json.loads, (src / "da-dev-labels.jsonl").open())}
@@ -180,8 +202,10 @@ def main():
     ap.add_argument("dataset", choices=MAKERS)
     ap.add_argument("--n", type=int, required=True)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--edits", type=Path, help='JSON {"evidence": {"<question id>": "<edited evidence text>"}} (bird)')
     args = ap.parse_args()
-    report = MAKERS[args.dataset](args.n, args.seed)
+    edits = json.loads(args.edits.read_text())["evidence"] if args.edits else {}
+    report = MAKERS[args.dataset](args.n, args.seed, edits)
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / f"{args.dataset}-selection.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps({k: v for k, v in report.items() if k != "skipped"}), f"skipped={len(report['skipped'])}")
