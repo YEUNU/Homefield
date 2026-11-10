@@ -204,9 +204,22 @@ def bare_fs(ep, prompt: str, model: str, env: dict):
     return cmd + ["--finalize-turns", "3", "--deadline-s", "780"], extra
 
 
+def hf(ep, prompt: str, model: str, env: dict):
+    """Our harness, step B1: `bare-fs` inside the gates (event log, budgets, no duplicate result,
+    stated assumptions, answer checked before it goes out, forced delivery of an unsent answer)."""
+    cmd, extra = bare_fs(ep, prompt, model, env)
+    task = ep.task
+    gates = ["--gates-dir", str(ep.root / "hf"), "--real-bin", str(ep.bin), "--answer-file", task["answer_file"]]
+    gates += ["--ask-budget", str(task["budget"]["ask"]), "--submit-budget", str(task["budget"]["submit"])]
+    if task["check"]["type"] == "sql_result":
+        gates += ["--db", task["db"]]
+    return cmd + gates, extra
+
+
 ADAPTERS = {
     "bare": bare,
     "bare-fs": bare_fs,
+    "hf": hf,
     "claude": claude,
     "codex": codex,
     "opencode": opencode,
