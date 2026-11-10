@@ -59,3 +59,21 @@ def complete(
 def chat(messages: list[dict], model: str = DEFAULT_MODEL, max_tokens: int = 512, **sampling) -> str:
     """Get text only, with no tools. sampling: temperature, thinking."""
     return complete(messages, model=model, max_tokens=max_tokens, **sampling)["content"] or ""
+
+
+def ask_json(messages: list[dict], check, complete=complete):
+    """Get one JSON object from the model. check(obj) returns the value to use or raises ValueError.
+    A reply that does not parse or does not pass the check gets one retry; then ValueError."""
+    messages = list(messages)
+    for _ in (1, 2):
+        reply = complete(messages).get("content") or ""
+        try:
+            start, end = reply.index("{"), reply.rindex("}")
+            return check(json.loads(reply[start : end + 1]))
+        except (ValueError, KeyError, TypeError, AttributeError) as e:
+            problem = f"{type(e).__name__}: {e}"
+        messages += [
+            {"role": "assistant", "content": reply},
+            {"role": "user", "content": f"That reply cannot be used ({problem}). Reply with the JSON object only."},
+        ]
+    raise ValueError(f"no usable JSON after 2 replies ({problem})")

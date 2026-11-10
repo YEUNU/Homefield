@@ -21,7 +21,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from homefield.events import EventLog
-from homefield.sources import result_key, run_select
+from homefield.sources import class_id, run_select
 
 FORCED_ASSUMPTION = "Delivered when the budget ran out. The customer did not confirm this reading."
 NEED_ASSUMPTIONS = (
@@ -72,13 +72,11 @@ def _answer_class(cfg: Config) -> tuple[str, str, str]:
         return "", "", "no answer file"
     text = cfg.answer_file.read_text()
     if cfg.db is None:
-        key = text.strip()
-    else:
-        try:
-            key = result_key(run_select(cfg.db, text))
-        except (sqlite3.Error, sqlite3.Warning) as e:
-            return text, "", f"answer does not run: {e}"
-    return text, hashlib.sha256(repr(key).encode()).hexdigest(), ""
+        return text, hashlib.sha256(repr(text.strip()).encode()).hexdigest(), ""
+    try:
+        return text, class_id(run_select(cfg.db, text)), ""
+    except (sqlite3.Error, sqlite3.Warning) as e:
+        return text, "", f"answer does not run: {e}"
 
 
 def _submit(cfg: Config, log: EventLog, assumptions: list[str], send, forced: bool) -> str:
