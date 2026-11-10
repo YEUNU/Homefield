@@ -325,3 +325,13 @@ def test_check_llm_rejects_a_base_url_without_scheme_or_v1(tmp_path):
         p = subprocess.run(["bash", script], env=env, capture_output=True, text=True, timeout=30)
         assert p.returncode != 0 and "LOCAL_LLM_BASE_URL must" in p.stderr, url
         assert "== models" not in p.stdout  # rejected before any network call
+
+
+def test_committed_task_files_are_valid_json():
+    import json
+    from pathlib import Path
+
+    files = sorted((Path(__file__).parent.parent / "tasks").glob("*/task.json"))
+    assert files
+    for f in files:
+        json.loads(f.read_text())
