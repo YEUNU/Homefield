@@ -45,3 +45,13 @@ def test_limit_check_reports_a_tie_at_the_top(tmp_path):
     db = make_db(tmp_path)
     assert audit_tasks.limit_checks(db, "SELECT id FROM lab ORDER BY v DESC LIMIT 1") != []
     assert audit_tasks.limit_checks(db, "SELECT id FROM lab ORDER BY v ASC LIMIT 1") == []
+
+
+def test_make_tasks_apply_edit_replaces_only_listed_items():
+    path = Path(__file__).parent.parent / "scripts" / "make_tasks.py"
+    spec = importlib.util.spec_from_file_location("make_tasks", path)
+    make_tasks = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(make_tasks)
+    edits = {"7": "new text"}
+    assert make_tasks.apply_edit(7, "old", edits) == ("new text", True)
+    assert make_tasks.apply_edit(8, "old", edits) == ("old", False)
