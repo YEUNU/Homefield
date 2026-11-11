@@ -216,10 +216,18 @@ def hf(ep, prompt: str, model: str, env: dict):
     return cmd + gates, extra
 
 
+def hf_steps(ep, prompt: str, model: str, env: dict):
+    """Our harness, step B3: the 4 steps (profile, candidates, ask, deliver) inside the gates of `hf`.
+    The worker loop of `hf` is the fallback. Tasks without a query answer run as `hf`."""
+    cmd, extra = hf(ep, prompt, model, env)
+    return cmd + ["--request", ep.task["request"]], extra
+
+
 ADAPTERS = {
     "bare": bare,
     "bare-fs": bare_fs,
     "hf": hf,
+    "hf-steps": hf_steps,
     "claude": claude,
     "codex": codex,
     "opencode": opencode,
