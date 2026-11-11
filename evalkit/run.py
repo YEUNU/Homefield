@@ -81,6 +81,16 @@ VARIANTS = {
       If several remain, choose the most likely one.
    e) Write the answer file and submit.
    State any unconfirmed assumption in a SQL comment in the answer file.""",
+    # E5 = comparator candidate for the hidden-facts form: ask about what the data does not settle.
+    # It names no kind of ambiguity (no knowledge of any evaluation item).
+    "E5": """
+5. Follow this procedure exactly:
+   a) Look at the schema and at sample values of the columns that the request needs.
+   b) List every term or condition in the request that changes the result and that the data does not settle.
+   c) Ask the customer about each item on the list before your first submission. Do not guess.
+   d) Write the query with the customer's answers. Run it and check that the result fits the request.
+   e) Write the answer file and submit.
+   State any unconfirmed assumption in a SQL comment in the answer file.""",
 }
 
 

@@ -51,7 +51,7 @@ The protocol is the same in every harness that has a shell.
   - Scoring time is limited so that the agent always gets a reply. The gold result is computed once, before the agent starts. An answer SQL that runs longer than 60 s is rejected as an SQL error (`error_kind` = `sql_error`, result `timeout after 60s` in the episode log). The limit is below the 120 s tool timeout of `bare`.
   - If the agent's process leaves before a reply arrives, the question or submission still counts. The episode log gets an event of kind `client_gone`.
 
-The customer simulator knows only `hidden.facts`. For a question outside the facts, it answers `I don't know.` It does not know the gold SQL.
+The customer simulator knows only `hidden.facts`. For a question outside the facts, it answers `I don't know.` It does not know the gold SQL. It answers only about the term or condition that the question names, with the fact line of that term (the facts are split into lines at `;`). A question that names no specific term or condition ("What should I know?") gets no fact; the answer is `Please ask about a specific term or condition.` Reason: without this rule one broad question returns all facts, and the hidden form of a task equals the form with the facts in the request.
 
 ## 4. Fairness rules
 1. Fix the model. Change only the harness.
@@ -132,3 +132,4 @@ The star counts are approximate values from secondary sources (morphllm.com, ope
 | E1 | E0 + "List the interpretations that change the result. Ask about each one before the first submission. State each interpretation that you did not confirm as an assumption" |
 | E2 | E1 + "If the customer does not know a definition, ask for a report number that the customer already knows. Keep only the interpretations that match that number" (a control that gives the anchor strategy as a conditional rule) |
 | E3 | The anchor strategy as an explicit procedure: list the decisions → ask for the report number once → compute the number for each candidate → keep only the matching candidates → submit (the strongest prompt control) |
+| E5 | A procedure for tasks where the customer knows definitions: look at the schema and sample values → list every term or condition that changes the result and that the data does not settle → ask about each one before the first submission → write and check the query → submit. It names no kind of ambiguity |
