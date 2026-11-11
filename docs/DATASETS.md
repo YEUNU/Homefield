@@ -73,7 +73,7 @@ python3 -I scripts/make_tasks.py bird-train --n 300 --seed 0  # BIRD train, deve
 ```
 - Selection is random with a fixed seed. Every task passes a self-check (the gold answer is accepted) before the script writes it. The script writes the selection and the skipped items to `data/tasks/<dataset>-selection.json`.
 - BIRD: only `moderate` and `challenging` questions with evidence. 3 of the 11 dev DBs are evaluation-only (drawn with the seed, listed in the selection file). The script does not make tasks from them.
-- BIRD train (`train.zip`, 8.9 GB, CC BY-SA 4.0; 9,428 questions, 69 DBs, none of them in dev): development pool only, never an evaluation set. The file has no question id and no difficulty label, so the id is the 0-based index in `train.json` (`birdtrain-<index>`). Only questions with evidence, in DBs of at most 600 MB, at most 6 items per DB.
+- BIRD train (`train.zip`, 8.9 GB, CC BY-SA 4.0; 9,428 questions, 69 DBs, none of them in dev): development pool only, never an evaluation set. The file has no question id and no difficulty label, so the id is the 0-based index in `train.json` (`birdtrain-<index>`). Only questions with evidence, in DBs of at most 600 MB, at most 6 items per DB. With the limits of the script (DBs of at most 600 MB, at most 6 items per DB) the pool gives at most 346 items; a larger `--n` returns 346.
 - Conditions: `O` = request + facts, no questions. `N` = request only, no questions. `D` = request only, the customer simulator knows the facts.
 
 ### 3.1 Common fields
