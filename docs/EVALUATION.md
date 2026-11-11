@@ -51,7 +51,7 @@ The protocol is the same in every harness that has a shell.
   - Scoring time is limited so that the agent always gets a reply. The gold result is computed once, before the agent starts. An answer SQL that runs longer than 60 s is rejected as an SQL error (`error_kind` = `sql_error`, result `timeout after 60s` in the episode log). The limit is below the 120 s tool timeout of `bare`.
   - If the agent's process leaves before a reply arrives, the question or submission still counts. The episode log gets an event of kind `client_gone`.
 
-The customer simulator knows only `hidden.facts`. For a question outside the facts, it answers `I don't know.` It does not know the gold SQL.
+The customer simulator knows only `hidden.facts`. For a question outside the facts, it answers `I don't know.` It does not know the gold SQL. It answers only about the term or condition that the question names, with the fact line of that term (the facts are split into lines at `;`). A question that names no specific term or condition ("What should I know?") gets no fact; the answer is `Please ask about a specific term or condition.` Reason: without this rule one broad question returns all facts, and the hidden form of a task equals the form with the facts in the request.
 
 ## 4. Fairness rules
 1. Fix the model. Change only the harness.
