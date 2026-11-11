@@ -69,16 +69,25 @@ REJECTED = "\n\nThe customer rejected a delivery. Do not give the same result ag
 
 
 def open_items(out: dict) -> list[dict]:
-    """What the code must ask: the terms that the data does not settle, then the points where queries
-    of different result classes use different readings."""
+    """What the code must ask: the phrases of the request that the data does not settle, then the points
+    where queries of different result classes use different readings. A term has a fixed question that
+    quotes the phrase. A point that names an asked phrase is not asked again."""
     items = [
-        {"kind": "term", "text": t["term"], "ask": f'the meaning of "{t["term"]}" ({t["why"]})'}
+        {
+            "kind": "term",
+            "text": t["term"],
+            "question": f'What exactly do you mean by "{t["term"]}"? '
+            "Please give the exact rule: which values, which fields, or which calculation.",
+        }
         for t in out["unsettled_terms"]
     ]
+    asked = [t["term"].lower() for t in out["unsettled_terms"]]
     class_of = {i: c["result_class"] for c in out["classes"] for i in c["queries"]}
     for p in out["points"]:
         seen = {(class_of[i], q["readings"][p["id"]]) for i, q in enumerate(out["queries"]) if i in class_of}
         if len({c for c, _ in seen}) > 1 and len({r for _, r in seen}) > 1:
+            if any(a in p["text"].lower() or p["text"].lower() in a for a in asked):
+                continue
             readings = "; ".join(f"({n}) {r}" for n, r in enumerate(p["readings"], 1))
             items.append({"kind": "point", "text": p["text"], "ask": f'"{p["text"]}" can mean: {readings}'})
     return items
@@ -125,13 +134,17 @@ def run_steps(
     for item in open_items(out):
         if sum(e["kind"] == "question.asked" for e in log.read()) >= cfg.ask_budget or late():
             break
-        ask = QUESTION.format(request=request, item=item["ask"])
-        try:
-            question = model.ask_json(
-                [{"role": "user", "content": ask}], lambda o: candidates.text(o["question"], "a question"), complete
-            )
-        except ValueError:
-            question = f'What exactly do you mean by "{item["text"]}"?'
+        question = item.get("question")
+        if not question:
+            ask = QUESTION.format(request=request, item=item["ask"])
+            try:
+                question = model.ask_json(
+                    [{"role": "user", "content": ask}],
+                    lambda o: candidates.text(o["question"], "a question"),
+                    complete,
+                )
+            except ValueError:
+                question = f'What exactly do you mean by "{item["text"]}"?'
         facts += f"- Question: {question}\n  Answer: {gate.ask(cfg, question, ask_customer)}\n"
     if facts and not late():
         out = propose(CONFIRMED + facts, out)

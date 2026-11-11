@@ -70,14 +70,22 @@ def run(shop, complete, **budget):
 
 
 def test_open_items_are_unsettled_terms_then_points_that_split_the_classes():
-    out = proposal(ALL, PAID, terms=[{"term": "revenue", "why": "net or gross"}])
+    out = proposal(ALL, PAID, terms=[{"term": "our customers", "why": "no column"}])
     out["classes"] = [{"result_class": "a", "queries": [0]}, {"result_class": "b", "queries": [1]}]
-    assert [(i["kind"], i["text"]) for i in open_items(out)] == [("term", "revenue"), ("point", "revenue")]
-    assert "(1) all orders; (2) paid orders only" in open_items(out)[1]["ask"]
+    items = open_items(out)
+    assert [(i["kind"], i["text"]) for i in items] == [("term", "our customers"), ("point", "revenue")]
+    assert items[0]["question"].startswith('What exactly do you mean by "our customers"? Please give the exact rule')
+    assert "(1) all orders; (2) paid orders only" in items[1]["ask"]
     out["classes"] = [{"result_class": "a", "queries": [0, 1]}]  # both readings give the same result
     assert [i["kind"] for i in open_items(out)] == ["term"]
     out["classes"] = [{"result_class": "a", "queries": [0]}]  # the second query did not run
     assert [i["kind"] for i in open_items(out)] == ["term"]
+
+
+def test_a_point_that_names_an_asked_term_is_not_asked_again():
+    out = proposal(ALL, PAID, terms=[{"term": "Revenue", "why": "net or gross"}])
+    out["classes"] = [{"result_class": "a", "queries": [0]}, {"result_class": "b", "queries": [1]}]
+    assert [(i["kind"], i["text"]) for i in open_items(out)] == [("term", "Revenue")]
 
 
 def test_assumptions_name_the_reading_taken_and_the_unconfirmed_terms():
