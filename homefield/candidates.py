@@ -62,7 +62,7 @@ class StepFailed(Exception):
     """Step 1 or step 2 gave nothing that the code can use. The caller falls back (gate G7)."""
 
 
-def _text(value, what: str) -> str:
+def text(value, what: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{what} must be a non-empty string")
     return value.strip()
@@ -88,17 +88,17 @@ def check_selection(obj, tables: dict) -> dict[str, list[str]]:
 def check_proposal(obj, k: int = K) -> dict:
     points = []
     for p in obj.get("points") or []:
-        readings = [_text(r, "a reading") for r in p["readings"]]
+        readings = [text(r, "a reading") for r in p["readings"]]
         if len(readings) < 2:
             raise ValueError(f"point {p.get('id')!r} needs two or more readings")
         points.append(
-            {"id": _text(p["id"], "a point id"), "text": _text(p["text"], "a point text"), "readings": readings}
+            {"id": text(p["id"], "a point id"), "text": text(p["text"], "a point text"), "readings": readings}
         )
     sizes = {p["id"]: len(p["readings"]) for p in points}
     if len(sizes) != len(points):
         raise ValueError("point ids must differ")
     terms = [
-        {"term": _text(t["term"], "a term"), "why": str(t.get("why") or "")} for t in obj.get("unsettled_terms") or []
+        {"term": text(t["term"], "a term"), "why": str(t.get("why") or "")} for t in obj.get("unsettled_terms") or []
     ]
     queries = []
     for q in (obj.get("queries") or [])[:k]:
@@ -108,7 +108,7 @@ def check_proposal(obj, k: int = K) -> dict:
         for point, n in chosen.items():
             if not isinstance(n, int) or isinstance(n, bool) or not 1 <= n <= sizes[point]:
                 raise ValueError(f"reading {n!r} of point {point!r} is not a number from 1 to {sizes[point]}")
-        queries.append({"sql": _text(q["sql"], "a query"), "readings": dict(chosen)})
+        queries.append({"sql": text(q["sql"], "a query"), "readings": dict(chosen)})
     if not queries:
         raise ValueError("no query")
     return {"points": points, "unsettled_terms": terms, "queries": queries}
@@ -164,7 +164,7 @@ def run(request: str, db: Path, complete=model.complete, events: EventLog | None
         prompt = REPAIR.format(request=request, sql=query["sql"], error=error, schema=schema)
         try:
             return model.ask_json(
-                [{"role": "user", "content": prompt}], lambda obj: _text(obj["sql"], "a query"), complete
+                [{"role": "user", "content": prompt}], lambda obj: text(obj["sql"], "a query"), complete
             )
         except ValueError:
             return None

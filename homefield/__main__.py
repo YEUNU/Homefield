@@ -2,7 +2,9 @@
 [--deadline-s S] [--finalize-turns N]
 
 With --gates-dir, the task runs inside the gates (homefield.procedure): the customer commands under
---real-bin are reached only through homefield.gate, and the events go to <gates-dir>/events.jsonl."""
+--real-bin are reached only through homefield.gate, and the events go to <gates-dir>/events.jsonl.
+With --request and --db also, the code runs the 4 steps (candidates, ask, deliver) and the worker
+loop is only the fallback."""
 
 import argparse
 import sys
@@ -11,7 +13,7 @@ from pathlib import Path
 
 from homefield import gate, model
 from homefield.loop import run
-from homefield.procedure import run_gated
+from homefield.procedure import run_gated, run_steps
 
 
 def main() -> int:
@@ -26,6 +28,7 @@ def main() -> int:
     ap.add_argument("--real-bin", type=Path, help="folder of the real ask_user and submit_answer commands")
     ap.add_argument("--answer-file", type=Path)
     ap.add_argument("--db", type=Path, help="SQLite file of a query task (the answer file is then one query)")
+    ap.add_argument("--request", help="the customer request alone; with --db, the task runs as the 4 steps")
     ap.add_argument("--ask-budget", type=int, default=0)
     ap.add_argument("--submit-budget", type=int, default=1)
     args = ap.parse_args()
@@ -38,17 +41,17 @@ def main() -> int:
             ask_budget=args.ask_budget,
             submit_budget=args.submit_budget,
         )
-        reason = run_gated(
-            args.prompt,
-            cwd,
-            cfg,
-            args.real_bin.resolve(),
-            complete=partial(model.complete, model=args.model),
-            log=args.log,
-            max_turns=args.max_turns,
-            deadline_s=args.deadline_s,
-            finalize_turns=args.finalize_turns,
-        )
+        loop = dict(log=args.log, max_turns=args.max_turns, deadline_s=args.deadline_s)
+        complete = partial(model.complete, model=args.model)
+        real = args.real_bin.resolve()
+        if args.request and args.db:
+            reason = run_steps(
+                args.request, args.prompt, cwd, cfg, real, complete, finalize_turns=args.finalize_turns, **loop
+            )
+        else:
+            reason = run_gated(
+                args.prompt, cwd, cfg, real, complete=complete, finalize_turns=args.finalize_turns, **loop
+            )
         print(f"[homefield] closed={reason}", file=sys.stderr)
         return 0 if reason in ("accepted", "rejected") else 1
     result = run(
