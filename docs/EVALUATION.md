@@ -68,7 +68,7 @@ Limit: the agent and the simulator run on the same machine. If the agent searche
 ## 5. Run
 ```bash
 cp .env.example .env    # LOCAL_LLM_BASE_URL, LOCAL_LLM_API_KEY
-python3 -m evalkit.run --task tasks/smoke-revenue --harness claude,codex,opencode,mini,openhands --variant E0,E1 --repeat 3
+python3 -m evalkit.run --task tasks/smoke-revenue --harness claude,codex,opencode,pi,omp,hermes --variant E0,E1 --repeat 3
 python3 -m evalkit.report evals/results/<date>.jsonl --task tasks/smoke-revenue
 ```
 - Give more than one task with `--task a,b`. `--jobs N` runs N episodes at the same time (on a shared LLM server, adjust it while you watch the run time).
@@ -86,11 +86,10 @@ We choose the comparison targets by recognition and role. Criteria: (1) use in t
 | A. Field leaders | `claude` | Claude Code | The leading commercial coding agent. FDEs use it in real work | Confirmed |
 | | `codex` | Codex CLI | An open-source commercial harness, about 126k stars (secondary source) | Confirmed |
 | | `opencode` | OpenCode | The open-source project with the most stars, about 209k (secondary source) | Confirmed |
-| | `qwen` | Qwen Code | A fork of the Gemini CLI family (about 107k stars) for open models. The Gemini CLI itself may not continue and has no OpenAI-compatible connection | Confirmed |
-| B. Open-source general | `openhands` | OpenHands CLI | A general agent. The default baseline of TheAgentCompany | Confirmed |
-| | `goose` | Goose | A general open-source agent, about 55k stars (secondary source) | Confirmed |
-| C. Research baselines | `mini` | mini-swe-agent | The minimal baseline of the SWE-bench and Terminal-Bench papers | Confirmed |
-| | `terminus` | Terminus 2 | The official reference agent of Terminal-Bench | Unconfirmed (needs the Terminal-Bench run framework) |
+| | `pi` | Pi (pi.dev) | A minimal terminal coding agent with four tools (read, bash, edit, write) | Confirmed |
+| | `omp` | oh-my-pi | A fork of Pi with more built-in tools | Confirmed |
+| B. Open-source general | `hermes` | Hermes Agent (Nous Research) | A general agent with skills and memory | Confirmed |
+| C. Research baselines | `terminus` | Terminus 2 | The official reference agent of Terminal-Bench | Unconfirmed (needs the Terminal-Bench run framework) |
 | | `bare` | Homefield M0 (`homefield/`): a model-independent tool-call loop with one shell tool | The lower bound of the harness effect and the base of our harness | Connected |
 | | `bare-fs` | `bare` with a forced final delivery: when the turn cap (40) or a 13-minute deadline is reached, the loop tells the model to stop exploring and deliver, and allows 3 more turns | Isolates termination failures from the rest of the procedure | Connected |
 | | `hf` | `bare-fs` inside gates (`homefield/gate.py`): the ask and submit commands of the prompt are replaced by gate commands. A gate keeps the budgets, refuses a result that was already rejected, refuses a submission without a stated assumption list, runs the answer read-only before it goes out, and delivers an answer that the agent wrote but did not submit. A refusal does not use the budget. It adds one line on assumptions to the prompt. Events: `<episode>/hf/events.jsonl` | Step B1 of our harness: plumbing, not a claim | Connected |
@@ -100,7 +99,8 @@ We choose the comparison targets by recognition and role. Criteria: (1) use in t
 Excluded harnesses and reasons:
 - Aider (about 49k stars): it focuses on file editing, so it does not fit the shell protocol. It has no recent commits (secondary source).
 - Cline, Kilo Code: they are mainly IDE extensions, so they do not fit a headless comparison.
-- The Gemini CLI itself: see the `qwen` row above.
+- The Gemini CLI itself: it has no OpenAI-compatible connection.
+- Qwen Code, OpenHands, Goose, mini-swe-agent: not in the comparison set. The set is the six harnesses of groups A and B; the project owner chose it.
 
 The star counts are approximate values from secondary sources (morphllm.com, openalternative.co). Check the real numbers in each repository.
 

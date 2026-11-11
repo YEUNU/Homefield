@@ -3,20 +3,19 @@ All settings stay isolated in the episode folder.
 Basis for the connection method: docs/HARNESSES.md"""
 
 import json
-import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# Pin versions for reproducibility. goose uses the Homebrew install (check and record its version at run time).
+# Pin versions for reproducibility. `omp` needs the Bun runtime; npx fetches the pinned `bun` package.
 VERSIONS = {
     "claude": "2.1.319",
     "codex": "0.167.0",
     "opencode": "1.19.5",
-    "qwen": "0.27.0",
-    "openhands": "1.16.0",
-    "mini": "2.4.6",
-    "goose": "1.57.0",
+    "pi": "1.5.2",
+    "omp": "18.18.9",
+    "bun": "1.4.4",
+    "hermes": "0.19.0",
 }
 
 
@@ -99,94 +98,90 @@ def opencode(ep, prompt: str, model: str, env: dict):
     )
 
 
-def mini(ep, prompt: str, model: str, env: dict):
+def _pi_provider(env: dict, model: str) -> dict:
+    """The local server as a custom provider of the pi family (docs/models.md of the pi package)."""
+    return {
+        "baseUrl": env["LOCAL_LLM_BASE_URL"],
+        "api": "openai-completions",
+        "apiKey": "LOCAL_LLM_API_KEY",
+        "models": [{"id": model}],
+    }
+
+
+def pi(ep, prompt: str, model: str, env: dict):
+    home = _home(ep, "pi")
+    provider = {**_pi_provider(env, model), "apiKey": "$LOCAL_LLM_API_KEY"}
+    (home / "models.json").write_text(json.dumps({"providers": {"local": provider}}))
     return (
         [
-            "uvx",
-            "--python",
-            "3.12",
-            "--from",
-            f"mini-swe-agent=={VERSIONS['mini']}",
-            "--with",
-            "mcp",
-            "mini",
-            "-m",
-            f"openai/{model}",
-            "-t",
-            prompt,
+            "npx",
             "-y",
-            "-l",
-            "0",
-            "--exit-immediately",
-            "-o",
-            str(ep.root / "traj.json"),
+            f"@earendil-works/pi-coding-agent@{VERSIONS['pi']}",
+            "-p",
+            "--no-session",
+            "--model",
+            f"local/{model}",
+            prompt,
         ],
         {
-            "MSWEA_GLOBAL_CONFIG_DIR": str(_home(ep, "mini")),
-            "MSWEA_CONFIGURED": "true",
-            "MSWEA_COST_TRACKING": "ignore_errors",
-            "OPENAI_API_BASE": env["LOCAL_LLM_BASE_URL"],
-            "OPENAI_API_KEY": env["LOCAL_LLM_API_KEY"],
+            "PI_CODING_AGENT_DIR": str(home),
+            "PI_OFFLINE": "1",
+            "PI_TELEMETRY": "0",
+            "LOCAL_LLM_API_KEY": env["LOCAL_LLM_API_KEY"],
         },
     )
 
 
-def openhands(ep, prompt: str, model: str, env: dict):
+def omp(ep, prompt: str, model: str, env: dict):
+    home = _home(ep, "omp")
+    # JSON is valid YAML; omp reads the env var that `apiKey` names.
+    (home / "models.yml").write_text(json.dumps({"providers": {"local": _pi_provider(env, model)}}))
+    return (
+        [
+            "npx",
+            "-y",
+            "-p",
+            f"bun@{VERSIONS['bun']}",
+            "-p",
+            f"@oh-my-pi/pi-coding-agent@{VERSIONS['omp']}",
+            "omp",
+            "-p",
+            "--no-session",
+            "--auto-approve",
+            "--model",
+            f"local/{model}",
+            prompt,
+        ],
+        {"PI_CODING_AGENT_DIR": str(home), "LOCAL_LLM_API_KEY": env["LOCAL_LLM_API_KEY"]},
+    )
+
+
+def hermes(ep, prompt: str, model: str, env: dict):
+    home = _home(ep, "hermes")
+    cfg = {
+        "model": {
+            "default": model,
+            "provider": "custom",
+            "base_url": env["LOCAL_LLM_BASE_URL"],
+            "api_key": "${LOCAL_LLM_API_KEY}",
+        }
+    }
+    (home / "config.yaml").write_text(json.dumps(cfg))  # JSON is valid YAML
     return (
         [
             "uvx",
             "--python",
             "3.12",
             "--from",
-            f"openhands=={VERSIONS['openhands']}",
-            "openhands",
-            "--headless",
+            f"hermes-agent=={VERSIONS['hermes']}",
+            "hermes",
+            "chat",
+            "-Q",
             "--yolo",
-            "--override-with-envs",
-            "--exit-without-confirmation",
-            "-t",
+            "-q",
             prompt,
         ],
-        {
-            "HOME": str(_home(ep, "openhands")),
-            "UV_CACHE_DIR": os.environ.get("UV_CACHE_DIR", str(Path.home() / ".cache" / "uv")),
-            "OPENHANDS_SUPPRESS_BANNER": "1",
-            "LLM_MODEL": f"openai/{model}",
-            "LLM_BASE_URL": env["LOCAL_LLM_BASE_URL"],
-            "LLM_API_KEY": env["LOCAL_LLM_API_KEY"],
-        },
-    )
-
-
-def qwen(ep, prompt: str, model: str, env: dict):
-    return (
-        ["npx", "-y", f"@qwen-code/qwen-code@{VERSIONS['qwen']}", "-p", prompt, "--yolo", "--auth-type", "openai"],
-        {
-            "HOME": str(_home(ep, "qwen")),
-            "npm_config_cache": os.environ.get("npm_config_cache", str(Path.home() / ".npm")),
-            "QWEN_CODE_SUPPRESS_YOLO_WARNING": "1",
-            "OPENAI_API_KEY": env["LOCAL_LLM_API_KEY"],
-            "OPENAI_BASE_URL": env["LOCAL_LLM_BASE_URL"],
-            "OPENAI_MODEL": model,
-        },
-    )
-
-
-def goose(ep, prompt: str, model: str, env: dict):
-    home = _home(ep, "goose")
-    return (
-        ["goose", "run", "--no-session", "-t", prompt],
-        {
-            "HOME": str(home),
-            "XDG_CONFIG_HOME": str(home / ".config"),
-            "GOOSE_PROVIDER": "openai",
-            "GOOSE_MODEL": model,
-            "GOOSE_MODE": "auto",
-            "GOOSE_DISABLE_KEYRING": "1",
-            "OPENAI_API_KEY": env["LOCAL_LLM_API_KEY"],
-            "OPENAI_HOST": env["LOCAL_LLM_BASE_URL"].removesuffix("/v1"),
-            "OPENAI_BASE_PATH": "v1/chat/completions",
-        },
+        {"HERMES_HOME": str(home), "LOCAL_LLM_API_KEY": env["LOCAL_LLM_API_KEY"]},
     )
 
 
@@ -231,8 +226,7 @@ ADAPTERS = {
     "claude": claude,
     "codex": codex,
     "opencode": opencode,
-    "qwen": qwen,
-    "openhands": openhands,
-    "goose": goose,
-    "mini": mini,
+    "pi": pi,
+    "omp": omp,
+    "hermes": hermes,
 }

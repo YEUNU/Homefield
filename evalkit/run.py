@@ -1,6 +1,6 @@
 """Task x harness runner.
 
-    python3 -m evalkit.run --task tasks/smoke-revenue --harness claude,codex,opencode,mini,openhands
+    python3 -m evalkit.run --task tasks/smoke-revenue --harness claude,codex,opencode,pi,omp,hermes
 
 Results: append one line per episode to evals/results/<date>.jsonl.
 Episode records go to $HF_RUNS_DIR (default: temp dir/homefield-runs).
