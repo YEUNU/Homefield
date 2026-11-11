@@ -173,3 +173,11 @@ def test_run_fails_as_a_step_when_nothing_is_usable(db):
     one_bad_query = {"queries": [{"sql": "SELECT nope"}]}
     with pytest.raises(candidates.StepFailed, match="no query runs"):
         candidates.run("r", db, says({"columns": {"order": ["id"]}}, one_bad_query, "?", "?"))
+
+
+def test_with_a_request_the_unsettled_terms_must_occur_in_it_and_come_once():
+    terms = [{"term": "Net Profit"}, {"term": "unit_price"}, {"term": "net profit"}]
+    out = candidates.check_proposal(
+        {"queries": [{"sql": "SELECT 1"}], "unsettled_terms": terms}, request="Top net profit?"
+    )
+    assert out["unsettled_terms"] == [{"term": "Net Profit", "why": ""}]

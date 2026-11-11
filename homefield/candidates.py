@@ -36,14 +36,16 @@ Facts about the columns that look relevant:
 
 Do three things.
 1. Find the points of the request that have more than one reasonable reading. Give each point its readings.
-2. List the terms of the request whose meaning the schema and the facts above do not settle (for example a
-   business word that no column or value explains). Do not guess their meaning silently.
+2. List each phrase of the request that the query turns into a filter, a calculation, or an output column,
+   when no column name and no stored value in the facts above states it literally (for example a business
+   word, a word for a formula such as a percentage or a profit, a word for an output such as "full name").
+   Use the exact words of the request, the whole phrase. Do not list column names. Do not guess silently.
 3. Write at most {k} SELECT queries that cover the different readings. Each query states which reading it
    uses at each point (the number of the reading, from 1).
 If the request has one reading only, give no points and one query.
 Reply with one JSON object and nothing else:
 {{"points": [{{"id": "p1", "text": "<what is unclear>", "readings": ["<reading 1>", "<reading 2>"]}}],
- "unsettled_terms": [{{"term": "<term>", "why": "<what is missing>"}}],
+ "unsettled_terms": [{{"term": "<phrase of the request>", "why": "<what is missing>"}}],
  "queries": [{{"sql": "<one SELECT>", "readings": {{"p1": 1}}}}]}}"""
 
 REPAIR = """This query for the request below fails on the SQLite database.
@@ -85,7 +87,8 @@ def check_selection(obj, tables: dict) -> dict[str, list[str]]:
     return out
 
 
-def check_proposal(obj, k: int = K) -> dict:
+def check_proposal(obj, k: int = K, request: str | None = None) -> dict:
+    """With a request, keep only the unsettled terms that occur in it (the customer knows its own words)."""
     points = []
     for p in obj.get("points") or []:
         readings = [text(r, "a reading") for r in p["readings"]]
@@ -97,9 +100,12 @@ def check_proposal(obj, k: int = K) -> dict:
     sizes = {p["id"]: len(p["readings"]) for p in points}
     if len(sizes) != len(points):
         raise ValueError("point ids must differ")
-    terms = [
-        {"term": text(t["term"], "a term"), "why": str(t.get("why") or "")} for t in obj.get("unsettled_terms") or []
-    ]
+    terms = {}
+    for t in obj.get("unsettled_terms") or []:
+        term = text(t["term"], "a term")
+        if request is None or term.lower() in request.lower():
+            terms.setdefault(term.lower(), {"term": term, "why": str(t.get("why") or "")})
+    terms = list(terms.values())
     queries = []
     for q in (obj.get("queries") or [])[:k]:
         chosen = q.get("readings") or {}
@@ -156,7 +162,9 @@ def run(request: str, db: Path, complete=model.complete, events: EventLog | None
         events.append("profile.done", columns=wanted)
     try:
         prompt = PROPOSE.format(request=request, schema=schema, profile=sources.profile_text(prof), k=k)
-        proposal = model.ask_json([{"role": "user", "content": prompt}], lambda obj: check_proposal(obj, k), complete)
+        proposal = model.ask_json(
+            [{"role": "user", "content": prompt}], lambda obj: check_proposal(obj, k, request), complete
+        )
     except ValueError as e:
         raise StepFailed(f"candidates: {e}") from e
 
