@@ -122,7 +122,7 @@ The star counts are approximate values from secondary sources (morphllm.com, ope
 | `cfc` | Cost of an accepted episode. `null` if the episode is not accepted |
 | `tokens_in`, `tokens_out`, `silent_error` | Reserved fields. Always `null` for now |
 | `latency_s` | Harness run time |
-| `notes` | Exit code or `timeout` |
+| `notes` | Exit code or `timeout`. At the time limit and at the end of an episode, the runner stops the harness, its child processes, and each process that still works in the episode folder |
 | `episode_dir` | Episode record folder |
 
 ## 8. Prompt variants
