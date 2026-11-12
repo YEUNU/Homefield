@@ -113,6 +113,34 @@ def build_db(task_dir: Path, task: dict, out: Path) -> Path | None:
     return db
 
 
+def stop_leftovers(pid: int, root: Path) -> None:
+    """Kill `pid`, its descendants, and each process whose working directory is inside `root`.
+
+    A harness starts tool commands in their own sessions, so a kill of the harness process group does not
+    reach them. A command can also stay alive after the harness ends.
+    """
+    root, parent, stop = root.resolve(), {}, {pid}
+    for d in Path("/proc").iterdir():
+        if not d.name.isdigit():
+            continue
+        try:
+            parent[int(d.name)] = int((d / "stat").read_text().rsplit(")", 1)[1].split()[1])
+            if Path(os.readlink(d / "cwd")).is_relative_to(root):
+                stop.add(int(d.name))
+        except OSError:  # the process ended, or it belongs to another user
+            continue
+    grew = True
+    while grew:
+        more = {p for p, pp in parent.items() if pp in stop} - stop
+        stop |= more
+        grew = bool(more)
+    for p in stop - {os.getpid()}:
+        try:
+            os.kill(p, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+
+
 def run_episode(
     task_dir: Path, task: dict, harness: str, variant: str, rep: int, model: str, timeout: int, runs: Path, src_db: Path
 ) -> dict:
@@ -148,8 +176,10 @@ def run_episode(
             rc = proc.wait(timeout=timeout)
             note = f"exit={rc}"
         except subprocess.TimeoutExpired:
-            os.killpg(proc.pid, signal.SIGKILL)
+            stop_leftovers(proc.pid, root)
+            proc.wait()
             note = "timeout"
+    stop_leftovers(proc.pid, root)
     latency = round(time.time() - t0, 1)
     ep.stop()
     return {
