@@ -44,7 +44,9 @@ Do three things.
    word, a word for a formula such as a percentage or a profit, a word for an output such as "full name").
    Use the exact words of the request, the whole phrase. Do not list column names. Do not guess silently.
 3. Write at most {k} SELECT queries that cover the different readings. Each query states which reading it
-   uses at each point (the number of the reading, from 1).
+   uses at each point (the number of the reading, from 1). A query returns what the request asks for and
+   no more: only the columns asked for, one row for a single value such as "how many", and no repeated
+   rows in a list unless the request needs them.
 If the request has one reading only, give no points and one query.
 Reply with one JSON object and nothing else:
 {{"points": [{{"id": "p1", "text": "<what is unclear>", "readings": ["<reading 1>", "<reading 2>"]}}],
