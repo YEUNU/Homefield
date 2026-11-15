@@ -36,6 +36,9 @@ Facts about the columns that look relevant:
 
 Do three things.
 1. Find the points of the request that have more than one reasonable reading. Give each point its readings.
+   A definition in the request and an answer of the customer are fixed rules. A point that they settle is
+   not a point: do not list it, and write no reading that goes against them. Two ways to write the same
+   meaning are not two readings.
 2. List each phrase of the request that the query turns into a filter, a calculation, or an output column,
    when no column name and no stored value in the facts above states it literally (for example a business
    word, a word for a formula such as a percentage or a profit, a word for an output such as "full name").
